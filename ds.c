@@ -11,9 +11,9 @@
 #include <sys/stat.h>
 #include <math.h>
 
-#delista_peerne CMD_LEN         12   // lunghezza comando da tastiera
-#delista_peerne REQUEST_LEN     4    // Lunghezza di "REQ\0"
-#delista_peerne BUF_LEN         1024
+#define CMD_LEN         12   // lunghezza comando da tastiera
+#define REQUEST_LEN     4    // Lunghezza di "REQ\0"
+#define BUF_LEN         1024
 
 struct des_peer
 {
@@ -51,7 +51,7 @@ void invia_ACK(int sd, struct sockaddr_in peer_addr)
     printf("LOG     Invio dell' ACK\n");
 
 riprovaACK:
-    ret = sendto(sd, ack, ACK_len, 0, (struct sockaddr*) &peer_addr, (socklen_t *__restrict)&len_peer_addr);    
+    ret = sendto(sd, ack, ACK_len, 0, (struct sockaddr*) &peer_addr, len_peer_addr);    
     if (ret < 0)
     {
         printf("ERR     Errore durante l'invio dell' ACK\n");
@@ -66,13 +66,13 @@ riprovaACK:
     Il formato del FILE è binario, e contieni gli des_peerenti della struttura des_peer */
 int ricerca_posto_lista_peer(int porta)
 {
-    int ret;
+    int i;
     FILE *fd;
     struct des_peer dp;
 
     printf("LOG     Ricerco nel FILE 'lista_peer.bin' la posizione dove inserire il nuovo peer\n");
 
-    if (fd = fopen("lista_peer.bin", "r+") == NULL)
+    if ((fd = fopen("lista_peer.bin", "r+")) == NULL)
     {
         printf("ERR     Errore nell'apertura del FILE 'lista_peer.bin'\n");
         return -1;
@@ -81,7 +81,8 @@ int ricerca_posto_lista_peer(int porta)
     {
         for(i=0; i<FILE_dim("prova.bin")/sizeof(struct des_peer); i++)
         {
-            fread(&dp, sizeof(struct des_peer), 1, lista_peer);
+            fread(&dp, sizeof(struct des_peer), 1, fd);
+
             if (porta == dp.porta)
             {
                 printf("ERR     Porta già assegnata a un peer");
@@ -89,7 +90,7 @@ int ricerca_posto_lista_peer(int porta)
             }
 
             if (porta < dp.porta)            
-                fseek(lista_peer, sizeof(struct des_peer)*i, SEEK_SET);
+                fseek(fd, sizeof(struct des_peer)*i, SEEK_SET);
             
             if (porta > dp.porta)
             {
@@ -98,7 +99,7 @@ int ricerca_posto_lista_peer(int porta)
             }
         }
         
-        fclose(lista_peer);
+        fclose(fd);
         return i;
     }
 }
@@ -115,10 +116,12 @@ int inserimento_lista_peer(int pos, uint16_t porta_peer, uint32_t IP_peer)
     }
     else 
     {
-        fseek(fd, sizeof(struct eledes_peer)*pos, SEEK_SET);
+        fseek(fd, sizeof(struct des_peer)*pos, SEEK_SET);
         fwrite(&dp, sizeof(struct des_peer), 1, fd);
         fclose(fd);
-    } 
+    }
+
+    return 0;
 }
 
 uint32_t IP_precedente(int pos)
@@ -129,12 +132,12 @@ uint32_t IP_precedente(int pos)
     if((fd = fopen("lista_peer.bin", "r")) == NULL)
     {
         printf("ERR     Non posso aprire il file 'lista_peer.bin'\n");
-        return -1
+        return -1;
     }
     else
     {
         pos--;
-        fseek(FI, sizeof(struct des_peer)*pos, SEEK_SET);
+        fseek(fd, sizeof(struct des_peer)*pos, SEEK_SET);
         fread(&dp, sizeof(struct des_peer), 1, fd);
         fclose(fd);
     }
@@ -150,12 +153,12 @@ uint32_t IP_successivo(int pos)
     if((fd = fopen("lista_peer.bin", "r")) == NULL)
     {
         printf("ERR     Non posso aprire il file 'lista_peer.bin'\n");
-        return -1
+        return -1;
     }
     else
     {
         pos++;
-        fseek(FI, sizeof(struct des_peer)*pos, SEEK_SET);
+        fseek(fd, sizeof(struct des_peer)*pos, SEEK_SET);
         fread(&dp, sizeof(struct des_peer), 1, fd);
         fclose(fd);
     }
@@ -164,18 +167,19 @@ uint32_t IP_successivo(int pos)
 }
 
 
-int invio_IP(uint32_t ip_addr)
+int invio_IP(uint32_t ip_addr, int soc)
 {
     int ret;
     struct sockaddr_in peer_addr;
     int len_peer_addr = sizeof(peer_addr);
 
-    ret = sendto(sd_boot, (void *)ip_addr, sizeof(uint32_t), 0, (struct sockaddr*) &peer_addr, (socklen_t *__restrict)&len_peer_addr);
+    ret = sendto(soc, (void *)(uint64_t)ip_addr, sizeof(uint32_t), 0, (struct sockaddr*) &peer_addr, len_peer_addr);
     if (ret < sizeof(uint32_t)) // Errore recvfrom()
     {
         printf("ERR     Errore durante l'invio degli indirizzi IP dei vicini\n");
         exit(-1);
     }
+    return 0;
 }
 
 
@@ -195,7 +199,7 @@ int main(int argc, char* argv[])
     uint16_t portaDS = atoi(argv[1]);
 
     char cmd[CMD_LEN]; // per comando da tastiera
-    char buf[1024];
+    // char buf[1024];
     uint32_t IP_peer, IP_prec, IP_succ;
     uint16_t porta_peer;
     int ret, sd_boot, len_peer_addr, indx;
@@ -226,7 +230,7 @@ int main(int argc, char* argv[])
     }
     else
     {
-        printf("LOG     bind() eseguita con successo\n")
+        printf("LOG     bind() eseguita con successo\n");
     }
     
     // ( GESTIONE FD: Reset dei descrittori e inizializzazione
@@ -248,23 +252,25 @@ int main(int argc, char* argv[])
         if (FD_ISSET(sd_boot, &read_fds)) // Richiesta da un peer che ha appena fatto boot (UDP)
         {
             // La richiesta usa il protocollo binario. Ci sono due campi da ricevere IP e porta.
-            ret = recvfrom(sd_boot, (void *)IP_peer, sizeof(uint32_t), 0, (struct sockaddr*) &peer_addr, (socklen_t *__restrict)&len_peer_addr);
+            ret = recvfrom(sd_boot, (void *)(uint64_t)IP_peer, sizeof(uint32_t), 0, (struct sockaddr*) &peer_addr, (socklen_t *__restrict)&len_peer_addr);
             if (ret < sizeof(uint32_t)) // Errore recvfrom()
             {
                 printf("ERR     Errore durante la ricezione della richiesta UDP\n");
+                continue;
             }
             
             IP_peer = ntohl(IP_peer);
 
-            ret = recvfrom(sd_boot, (void *)porta_peer, sizeof(uint16_t), 0, (struct sockaddr*) &peer_addr, (socklen_t *__restrict)&len_peer_addr);
+            ret = recvfrom(sd_boot, (void *)(uint64_t)porta_peer, sizeof(uint16_t), 0, (struct sockaddr*) &peer_addr, (socklen_t *__restrict)&len_peer_addr);
             if (ret < sizeof(uint16_t)) // Errore recvfrom()
             {
                 printf("ERR     Errore durante la ricezione della richiesta UDP\n");
+                continue;
             }
 
             porta_peer = ntohl(porta_peer);
 
-            invio_ACK(sd_boot, peer_addr);
+            invia_ACK(sd_boot, peer_addr);
             printf("LOG     ACK inviato con successo\n");
 
             // Ricercare nel file lista_peer.bin l'idice dove inserire
@@ -275,10 +281,10 @@ int main(int argc, char* argv[])
 
             // Inviare i vicini al richiedente
             IP_prec = IP_precedente(indx);
-            IP_succ = IP_successivo(index);
+            IP_succ = IP_successivo(indx);
 
-            invio_IP(IP_prec);
-            invio_IP(IP_succ);
+            invio_IP(IP_prec, sd_boot);
+            invio_IP(IP_succ, sd_boot);
 
         }
         if (FD_ISSET(0, &read_fds)) // Richiesta dallo stdin: 0
