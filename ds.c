@@ -193,6 +193,64 @@ inline void comandi_disponibili()
     printf("Digitare un comando per iniziare.\n");
 }
 
+inline void comandi_disponibili_con_ spiegazione()
+{
+    printf("I comandi disponibili sono:\n");
+    printf("    1) help:            mostra il significato dei comandi e cio' che fanno\n");
+    printf("    2) showpeers:       mostra l'elenco dei peer connessi alla rete tramite il loro numero di porta\n");
+    printf("    3) showneighbor:    mostra i neighbor di un peer specifico come parametro opzionale. Se non viene specificato alcun parametro, il comando mostra i neighbor di ogni peer\n");
+    printf("    4) esc:             termina il DS. La terminazione causa la terminazione di tutti i peer. \n");
+}
+
+// Converte un IP binario nella notazione decimale puntata e mette 4 cifre in un array di int
+int *da_binario_a_decPun(uint32_t ip, int ris[4])
+{
+    uint8_t app;
+    int i = 0;
+
+    do
+    {
+        app = ip;
+        ris[i] = app;
+        ip = ip >> 8;
+        i++;
+    } while (i < 4);
+
+    return ris;    
+}
+
+void stampa_lista_peer()
+{
+    struct des_peer dp;
+    FILE * fd;
+    long i;
+    int str_ip[4];
+
+    if ((FI = fopen("lista_peer.bin","r")) == NULL)
+        printf("ERR     non posso aprire il file 'lista_peer.bin'");
+    else 
+    {
+        printf("------ PEER DISPONIBILI ------\n");
+        for(i=0; i<=file_dim("prova.bin")/sizeof(struct des_peer); i++)
+        {
+            fread(&dp, sizeof(struct des_peer), 1, fd);
+            da_binario_a_decPun(dp.IP, str_ip);
+            printf("peer : ");
+            for (i=3; i>=0; i--)
+            {
+                if (i > 0)
+                    printf("%d.", ris[i]);
+                else
+                    printf("%d", ris[i]);
+            }
+            printf(", posta = %d\n", dp.porta);
+            fseek(fd, sizeof(struct des_peer)*i, SEEK_SET);
+        }
+        printf("------------------------------\n");
+        fclose(fd);
+    } 
+}
+
 int main(int argc, char* argv[])
 {
     // ( VARIABILI
@@ -291,8 +349,8 @@ int main(int argc, char* argv[])
         {
             printf("Salve!\n");
             comandi_disponibili();
+            printf("prompt$");
 
-//comando:
             char *str = fgets(cmd, CMD_LEN, stdin);
             if (str == NULL)
             {
@@ -305,18 +363,15 @@ int main(int argc, char* argv[])
 
             if (strcmp(cmd, "help") == 0)
             {
-                printf("Comando help\n");
-//                goto comando;
+                comandi_disponibili_con_ spiegazione();
             }
             else if (strcmp(cmd, "showpeers") == 0)
             {
-                printf("Comando showpeers\n");
-//                goto comando;
+                stampa_lista_peer();
             }
             else if (strcmp(cmd, "showneighbor") == 0)
             {
                 printf("Comando showneighbor\n");
-//                goto comando;
             }
             else if (strcmp(cmd, "esc") == 0)
             {
@@ -327,7 +382,6 @@ int main(int argc, char* argv[])
             {
                 printf("Comando non valido. riprovare\n");
                 comandi_disponibili();
-//                goto comando;
             }
         }
     }    
