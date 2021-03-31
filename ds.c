@@ -175,7 +175,7 @@ int inserimento_lista_peer(int pos, uint16_t porta_peer, uint32_t IP_peer)
     return 0;
 }
 
-uint32_t IP_precedente(int pos)
+uint32_t porta_precedente(int pos)
 {
     FILE *fd;
     struct des_peer dp;
@@ -193,10 +193,10 @@ uint32_t IP_precedente(int pos)
         fclose(fd);
     }
 
-    return dp.IP;
+    return dp.porta;
 }
 
-uint32_t IP_successivo(int pos)
+uint32_t porta_successivo(int pos)
 {
     FILE *fd;
     struct des_peer dp;
@@ -214,21 +214,21 @@ uint32_t IP_successivo(int pos)
         fclose(fd);
     }
 
-    return dp.IP;
+    return dp.porta;
 }
 
 // Invio al richiedente che fa boot, l'IP di un suo vicino
-int invio_IP(uint32_t ip_addr, int soc)
+int invio_porta(uint16_t porta, int soc)
 {
     int ret;
     struct sockaddr_in peer_addr;
     int len_peer_addr = sizeof(peer_addr);
 
-    ret = sendto(soc, (void *)(uint64_t)ip_addr, sizeof(uint32_t), 0, (struct sockaddr*) &peer_addr, len_peer_addr);
+    ret = sendto(soc, porta, sizeof(uint32_t), 0, (struct sockaddr*) &peer_addr, len_peer_addr);
     if (ret < sizeof(uint32_t)) // Errore recvfrom()
     {
         printf("ERR     Errore durante l'invio degli indirizzi IP dei vicini\n");
-        exit(-1);
+        return -1;
     }
     return 0;
 }
@@ -339,8 +339,8 @@ int main(int argc, char* argv[])
     // ( VARIABILI
     uint16_t portaDS = atoi(argv[1]);
 
-    uint32_t IP_peer, IP_prec, IP_succ;
-    uint16_t porta_peer;
+    uint32_t IP_peer;
+    uint16_t porta_peer, porta_prec, porta_succ;
     int ret, sd, len_peer_addr, indx;
 
     fd_set master;
@@ -408,10 +408,12 @@ int main(int argc, char* argv[])
                 continue;
             }
 
-            if (!strcmp(buffer, "REQ"))
+            invia_ACK(sd, peer_addr);
+            printf("LOG     ACK per la richiesta inviato con successo\n");
+
+            if (!strcmp(buffer, "REQ")) // Richiesta da un peer che ha appena fatto boot
             {    
-                // Richiesta da un peer che ha appena fatto boot (UDP)
-                
+                printf("LOG     Ricevuto messaggio di REQ\n");
                 // La richiesta usa il protocollo binario. Ci sono due campi da ricevere IP e porta.
                 // ricevo IP
                 ret = recvfrom(sd, (void *)(uint64_t)IP_peer, sizeof(uint32_t), 0, (struct sockaddr*) &peer_addr, (socklen_t *__restrict)&len_peer_addr);
@@ -435,7 +437,7 @@ int main(int argc, char* argv[])
 
                 // Invio l'ACK
                 invia_ACK(sd, peer_addr);
-                printf("LOG     ACK inviato con successo\n");
+                printf("LOG     ACK per IP e porta inviato con successo\n");
 
                 // Ricercare nel file lista_peer.bin l'idice dove inserire
                 indx = ricerca_posto_lista_peer(porta_peer);
@@ -444,15 +446,19 @@ int main(int argc, char* argv[])
                 inserimento_lista_peer(indx, porta_peer, IP_peer);
 
                 // Inviare i vicini al richiedente
-                IP_prec = IP_precedente(indx);
-                IP_succ = IP_successivo(indx);
+                printf("LOG     Cerco i peer precedente e successivo\n");
+                porta_prec = porta_precedente(indx); // RISOLVERE L'ERRORE
+                porta_succ = porta_successivo(indx); // RISOLVERE L'ERRORE
 
-                invio_IP(IP_prec, sd);
-                invio_IP(IP_succ, sd);
+                printf("LOG     Invio lista neighbor\n");
+                invio_porta(porta_prec, sd);        // RISOLVERE L'ERRORE
+                invio_porta(porta_succ, sd);        // RISOLVERE L'ERRORE
+                printf("LOG     Lista neighbor inviata con successo\n");
             }
-            else
+            else if (!strcmp(buffer, "STP")) // Ho ricevuto STP 
             {
-                
+                // Devo cercare i vicini e inviare una richiesta di modifica dei loro neighbor
+                printf("LOG     Ricevuto messaggio di STP\n");
             }
         }
         if (FD_ISSET(0, &read_fds)) // Richiesta dallo stdin: 0
