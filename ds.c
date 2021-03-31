@@ -15,9 +15,11 @@
 #define REQUEST_LEN     4    // Lunghezza di "REQ\0"
 #define BUF_LEN         1024
 
-char comando[BUF_LEN];
+char buffer[BUF_LEN];   // Usato per memorizzare i comandi da tastiera
+char comando[BUF_LEN];  // comando e parametro sono usati per differenziare i comandi dai parametri dei comandi da tastiera
 int parametro;
 
+/* struct usata da stampo per scrivere e leggere dal file 'lista_peer.bin'*/
 struct des_peer
 {
     uint16_t porta;
@@ -63,19 +65,52 @@ riprovaACK:
     }
 }
 
+void attendo_ACK(int sd, struct sockaddr_in peer_addr)
+{
+    const char *ack = "ACK\0";
+    const int ACK_len = 4;
+    char buf[4];
+    int ret;
+    int len_peer_addr = sizeof(peer_addr);
+    printf("LOG     Attendo ACK\n");
+
+    do
+    {
+        ret = recvfrom(sd, buf, ACK_len, 0, (struct sockaddr*) &peer_addr, (socklen_t *__restrict)&len_peer_addr);
+    } while (!strcmp(buf, ack) || ret > 0);
+
+}
+
+void invia_richiesta_UPD(int sd, struct sockaddr_in peer_addr)
+{
+    const char *upd = "UPD\0";
+    const int UPD_len = 4;
+    int ret;
+    int len_peer_addr = sizeof(peer_addr);
+    printf("LOG     Invio dell' UPD\n");
+
+riprovaACK:
+    ret = sendto(sd, upd, UPD_len, 0, (struct sockaddr*) &peer_addr, len_peer_addr);    
+    if (ret < 0)
+    {
+        printf("ERR     Errore durante l'invio dell' UPD\n");
+        goto riprovaACK;
+    }
+}
+
 void invia_ESC(int sd, struct sockaddr_in peer_addr)
 {
     const char *esc = "ESC\0";
     const int ESC_len = 4;
     int ret;
     int len_peer_addr = sizeof(peer_addr);
-    printf("LOG     Invio dell' ACK\n");
+    printf("LOG     Invio di ESC\n");
 
 riprovaESC:
     ret = sendto(sd, esc, ESC_len, 0, (struct sockaddr*) &peer_addr, len_peer_addr);    
     if (ret < 0)
     {
-        printf("ERR     Errore durante l'invio dell' ACK\n");
+        printf("ERR     Errore durante l'invio di ESC\n");
         goto riprovaESC;
     }
 }
@@ -88,6 +123,7 @@ int ricerca_binaria_file(FILE *fd, long inizio, long fine, uint32_t target)
 {
     long c_indx;        // Posizione centrale del puntatore nel file  
     int len = sizeof(struct des_peer);
+    struct des_peer dp;
 
     if (inizio > fine)
         return -1; // Errore
@@ -95,7 +131,7 @@ int ricerca_binaria_file(FILE *fd, long inizio, long fine, uint32_t target)
     {
         c_indx = ((inizio + fine) / 2) / len; // Diviso len, per tener conto della grandezza della struct des_peer
         fseek(fd, c_indx-1, SEEK_SET);
-        read(&dp, sizeof(struct des_peer), 1, fd);
+        fread(&dp, sizeof(struct des_peer), 1, fd);
 
         if (dp.porta == target)
             return c_indx;
@@ -154,7 +190,8 @@ int ricerca_posto_lista_peer(int porta)
     }
 }
 
-/* Scrivo dentro il file 'lista_peer.bin' nella posizione (pos) del cursore. Scrivo i parametri PORTA e IP passati*/
+/* Scrivo dentro il file 'lista_peer.bin' nella posizione (pos) del cursore. 
+   Scrivo i parametri PORTA e IP passati*/
 int inserimento_lista_peer(int pos, uint16_t porta_peer, uint32_t IP_peer)
 {
     FILE *fd;
@@ -170,6 +207,53 @@ int inserimento_lista_peer(int pos, uint16_t porta_peer, uint32_t IP_peer)
         fseek(fd, sizeof(struct des_peer)*pos, SEEK_SET);
         fwrite(&dp, sizeof(struct des_peer), 1, fd);
         fclose(fd);
+    }
+
+    return 0;
+}
+
+/* Crea un nuovo file binario dove copia tutti record eccetto quello da eliminare.
+   Rinomina il nuovo file e elimina il vecchio*/
+int rimozione_lista_peer(int pos)
+{
+
+    FILE *fd;
+    FILE *fd_app;
+    struct des_peer dp;
+    int i;
+
+    if ((fd = fopen("lista_peer.bin","r+")) == NULL)
+    {
+        printf("ERR     Non posso aprire il file 'lisra_peer.bin");
+        return -1;
+    }
+    else 
+    {
+        fd_app = fopen("temporaneo.bin","r+");
+        
+        for (i=0; i<pos; i++) // Copio da 0 a pos-1
+        {
+            fseek(fd, sizeof(struct des_peer)*i, SEEK_SET); // Setto il cursore
+            fseek(fd_app, sizeof(struct des_peer)*i, SEEK_SET); // Setto il cursore
+            fread(&dp, sizeof(struct des_peer), 1, fd); // Leggo dal vecchio file
+            fwrite(&dp, sizeof(struct des_peer), 1, fd_app); // Copio ne nuovo
+        }
+
+        for (i=pos+1; i<FILE_dim("prova.bin")/sizeof(struct des_peer); i++) // Copio da pos+1 fino alla fine
+        {
+            fseek(fd, sizeof(struct des_peer)*i, SEEK_SET); // Setto il cursore
+            fseek(fd_app, sizeof(struct des_peer)*i, SEEK_SET); // Setto il cursore
+            fread(&dp, sizeof(struct des_peer), 1, fd); // Leggo dal vecchio file
+            fwrite(&dp, sizeof(struct des_peer), 1, fd_app); // Copio ne nuovo
+        }
+
+        fclose(fd);
+        fclose(fd_app);
+        
+        // Rinomino il nuovo file e elimino il vecchio
+        remove("lista_peer.bin");
+        rename("temporaneo.bin", "lista_peer.bin");
+        printf("LOG     Peer rimosso correttamente\n");
     }
 
     return 0;
@@ -291,9 +375,9 @@ void stampa_lista_peer()
             for (i=3; i>=0; i--)
             {
                 if (i > 0)
-                    printf("%d.", ris[i]);
+                    printf("%d.", str_ip[i]);
                 else
-                    printf("%d", ris[i]);
+                    printf("%d", str_ip[i]);
             }
             printf(", posta = %d\n", dp.porta);
             fseek(fd, sizeof(struct des_peer)*i, SEEK_SET);
@@ -316,19 +400,19 @@ void stampa_vicini(int pos, uint16_t peer)
         if (peer == 0) // In caso non si è specificato il parametro nel comando, lo vado a recuperare
         {
             fseek(fd, sizeof(struct des_peer)*pos, SEEK_SET);
-            read(&dp, sizeof(struct des_peer), 1, fd);
+            fread(&dp, sizeof(struct des_peer), 1, fd);
             peer = dp.porta;
         }
 
         // stampa precedente
         fseek(fd, sizeof(struct des_peer)*(pos-1), SEEK_SET);
-        read(&dp, sizeof(struct des_peer), 1, fd);
+        fread(&dp, sizeof(struct des_peer), 1, fd);
         printf("I vicini di %d sono: %d, ", peer, dp.porta);
 
         // stampa successivo
         fseek(fd, sizeof(struct des_peer)*(pos+1), SEEK_SET);
-        read(&dp, sizeof(struct des_peer), 1, fd);
-        printf(" %d\n" dp.porta);
+        fread(&dp, sizeof(struct des_peer), 1, fd);
+        printf(" %d\n", dp.porta);
 
         fclose(fd);
     }
@@ -413,6 +497,7 @@ int main(int argc, char* argv[])
 
             if (!strcmp(buffer, "REQ")) // Richiesta da un peer che ha appena fatto boot
             {    
+                // RISOLVERE CASO PARTICOLARE DEL PRIMO PEER CHE SI REGISTRA
                 printf("LOG     Ricevuto messaggio di REQ\n");
                 // La richiesta usa il protocollo binario. Ci sono due campi da ricevere IP e porta.
                 // ricevo IP
@@ -451,20 +536,59 @@ int main(int argc, char* argv[])
                 porta_succ = porta_successivo(indx); // RISOLVERE L'ERRORE
 
                 printf("LOG     Invio lista neighbor\n");
-                invio_porta(porta_prec, sd);        // RISOLVERE L'ERRORE
-                invio_porta(porta_succ, sd);        // RISOLVERE L'ERRORE
+                invio_porta(porta_prec, sd);         // RISOLVERE L'ERRORE
+                invio_porta(porta_succ, sd);         // RISOLVERE L'ERRORE
                 printf("LOG     Lista neighbor inviata con successo\n");
             }
             else if (!strcmp(buffer, "STP")) // Ho ricevuto STP 
             {
+                FILE *fd;
                 // Devo cercare i vicini e inviare una richiesta di modifica dei loro neighbor
                 printf("LOG     Ricevuto messaggio di STP\n");
+
+                // Ricevo porta
+                ret = recvfrom(sd, (void *)(uint64_t)porta_peer, sizeof(uint16_t), 0, (struct sockaddr*) &peer_addr, (socklen_t *__restrict)&len_peer_addr);
+                if (ret < sizeof(uint16_t)) // Errore recvfrom()
+                {
+                    printf("ERR     Errore durante la ricezione della richiesta UDP\n");
+                    continue;
+                }
+
+                porta_peer = ntohl(porta_peer);
+
+                // Invio l'ACK
+                invia_ACK(sd, peer_addr);
+                printf("LOG     ACK per la porta inviato con successo\n");
+
+                fd = fopen("lista_peer.bin", "r");
+                indx = ricerca_binaria_file(fd, SEEK_SET, SEEK_END, porta_peer);
+                fclose(fd);
+
+                // Invio ai peer che hanno perso il vicino, l'aggiornamento del peer
+                invia_richiesta_UPD(sd, peer_addr);
+
+                // Attendo l'ACK da parte del peer per poter inviare i nuovi vicini
+                attendo_ACK(sd, peer_addr);
+
+                // Ricevuto l'ACK rinvio i vicini del peer, entrambi.
+                // Inviare i vicini al richiedente
+                printf("LOG     Cerco i peer precedente e successivo\n");
+                porta_prec = porta_precedente(indx); // RISOLVERE L'ERRORE
+                porta_succ = porta_successivo(indx); // RISOLVERE L'ERRORE
+
+                printf("LOG     Invio lista neighbor\n");
+                invio_porta(porta_prec, sd);         // RISOLVERE L'ERRORE
+                invio_porta(porta_succ, sd);         // RISOLVERE L'ERRORE
+                printf("LOG     Lista neighbor inviata con successo\n");
+                
+                // Elimino il peer che fa fatto STP dal file 'lista_peer.bin'
+                printf("LOG     Rimozione peer che ha fato richiesta STP\n");
+                ret = rimozione_lista_peer(indx); // RISOLVERE L'ERRORE
             }
         }
         if (FD_ISSET(0, &read_fds)) // Richiesta dallo stdin: 0
         {
             // comandi_disponibili();
-            // printf("prompt$");
             
             // pulisco buffer
             strcpy(buffer,"");
@@ -476,6 +600,7 @@ int main(int argc, char* argv[])
             if(str == NULL)
             {
                 printf("ERR     Immetti un comando valido!\n");
+                // printf("prompt$ ");
                 continue;
             }
 
@@ -484,6 +609,7 @@ int main(int argc, char* argv[])
             if( (strlen(comando) == 0) || (strcmp(comando," ") == 0) )
             {
                 printf("ERR     Comando non valido! Prova ad inserire uno dei seguenti:\n");
+                // printf("prompt$ ");
                 continue;
             }
 
@@ -502,13 +628,17 @@ int main(int argc, char* argv[])
                 // Se non viene specificato alcun parametro, il comando mostra i neighbor di ogni peer
                 if (parametro != NULL)
                 {
-                    ret = ricerca_indx_file(parametro);
+                    FILE *fd = fopen("lista_peer.bin", "r");
+                    ret = ricerca_binaria_file(fd, SEEK_SET, SEEK_END, parametro);
                     if (ret == -1)
                     {
-                        printf("ERR     Hai inserito un peer non esistente.\n");
+                        printf("ERR     Hai inserito un peer non esistente. Riprovare.\n");
+                        // printf("prompt$ ");
+                        continue;
                     }
 
-                    stampa_vicini(ret, parametro);              
+                    stampa_vicini(ret, parametro);
+                    fclose(fd);              
                 }
                 else
                 {
@@ -518,6 +648,8 @@ int main(int argc, char* argv[])
                         stampa_vicini(i, 0);
                     }
                 }
+
+                // printf("prompt$ ");
             }
             else if (strcmp(comando, "esc") == 0)
             {
@@ -530,6 +662,7 @@ int main(int argc, char* argv[])
             {
                 printf("ERR     Comando non valido! Prova ad inserire uno dei seguenti:\n");
                 comandi_disponibili();
+                // printf("prompt$ ");
             }
         }
     }    
