@@ -47,11 +47,9 @@ char carattere1[2];
     struct tm* timeinfo;
 // )
 
-/* dato giorno, mese e anno, calcola la data del giorno precedente*/
-int *data_successiva(int d, int m, int y)
-{
-    int ris[3];
-    
+/* dato giorno, mese e anno, calcola la data del giorno successivo*/
+void data_successiva(int d, int m, int y,  int ris[])
+{    
     if (y%4 == 0) // Anno bisestile
     {
         if (m == 2 && d == 29) // Febbraio
@@ -120,14 +118,11 @@ int *data_successiva(int d, int m, int y)
     ris[1] = d;
     ris[2] = m;
     ris[3] = y;
-    return ris;
 }
 
-/* dato giorno, mese e anno, calcola la data del giorno successivo*/
-int *data_precedente(int d, int m, int y)
+/* dato giorno, mese e anno, calcola la data del giorno precedente*/
+void data_precedente(int d, int m, int y,  int ris[3])
 {
-    int ris[3];
-    // cerco la data precedente
     if (y%4 == 0) // Anno bisestile
     {
         if (m == 3 && d == 1) // Febbraio-Marzo
@@ -188,113 +183,9 @@ int *data_precedente(int d, int m, int y)
     ris[1] = d;
     ris[2] = m;
     ris[3] = y;
-    return ris;
 }
 
-/* Crea il socket per la connessione UDP, in modo da assocciarlo all'indirizzo e alla porta passati.
-   Ritorna -1 in caso di errore */
-int creazione_socket_UDP() 
-{
-    // Creazione del socket UDP
-    printf("LOG     creazione del socket...\n");
-	if((udp_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) 
-    {
-		perror("ERR     Errore nella creazione del socket UDP, ripovare: ");
-		return -1;
-	}
-    printf("LOG     creazione del socket effettuata con successo\n");
-	
-    // Aggancio
-    printf("LOG     Aggancio al socket: bind()...\n");
-    if (bind(udp_socket, (struct sockaddr*) &my_addr, sizeof(my_addr)) == -1) 
-    {
-        perror("ERR     Bind non riuscita\n");
-        exit(-1);
-    }
-    else
-    {
-        printf("LOG     bind() eseguita con successo\n");
-    }
-
-	printf("LOG     Connessione al server %s (porta %d) effettuata con successo\n", my_addr.sin_addr.s_addr, my_addr.sin_port);
-    return 0;
-}
-
-void invio_richiesta_start()
-{
-    char req_str[REQUEST_LEN];
-    strcpy(req_str, "REQ_STR");
-    printf("LOG     Invio di %s...\n", req_str);
-
-    if (sendto(udp_socket, req_str, REQUEST_LEN, 0, (struct sockaddr*) &ds_addr, ds_len_addr) == -1)
-    {
-        perror("ERR     Errore durante l'invio dell' ACK");
-    }
-    
-    printf("LOG     %s inviato con successo\n", req_str);
-}
-
-/* Ricezione dell'ACK da parte di addr*/
-void attendo_ACK(struct sockaddr_in addr, char ack[])
-{
-    char buf[REQUEST_LEN];
-    int ret;
-    int len_addr = sizeof(addr);
-    printf("LOG     Attendo %s...\n", ack);
-
-    do
-    {
-        ret = recvfrom(udp_socket, buf, REQUEST_LEN, 0, (struct sockaddr*) &addr, (socklen_t *__restrict)&len_addr);
-    } while (!strcmp(buf, ack) || ret > 0);
-
-    printf("LOG     %s ricevuto con successo\n", ack);
-}
-
-/* Ricezione IP e porta dei neighbor*/
-void ricezione_vicini()
-{
-    uint32_t ip;
-    in_port_t porta;
-
-    printf("LOG     Ricezione IP e porta del primo neighbor...\n");
-
-    if (recvfrom(udp_socket, ip, sizeof(uint32_t), 0, (struct sockaddr*) &ds_addr, (socklen_t *__restrict)&ds_len_addr) == -1)
-    {
-        perror("ERR     Errore durante la ricezione del primo IP");
-    }
-
-    if (recvfrom(udp_socket, porta, sizeof(in_port_t), 0, (struct sockaddr*) &ds_addr, (socklen_t *__restrict)&ds_len_addr) == -1)
-    {
-        perror("ERR     Errore durante la ricezione della prima porta");
-    }
-
-    printf("LOG     Ricezione IP e porta del primo neighbor effettuata con successo\n");
-
-    memset(&vicino.prec_addr, 0, sizeof(vicino.prec_addr));
-    vicino.prec_addr.sin_family = AF_INET;
-    vicino.prec_addr.sin_addr.s_addr = ip;
-    vicino.prec_addr.sin_port = ntohl(porta);
-
-    printf("LOG     Ricezione IP e porta del secondo neighbor...\n");
-
-    if (recvfrom(udp_socket, ip, sizeof(uint32_t), 0, (struct sockaddr*) &ds_addr, (socklen_t *__restrict)&ds_len_addr) == -1)
-    {
-        perror("ERR     Errore durante la ricezione del secondo IP");
-    }
-
-    if (recvfrom(udp_socket, porta, sizeof(in_port_t), 0, (struct sockaddr*) &ds_addr, (socklen_t *__restrict)&ds_len_addr) == -1)
-    {
-        perror("ERR     Errore durante la ricezione della seconda porta");
-    }
-
-    printf("LOG     Ricezione IP e porta del secondo neighbor effettuata con successo\n");
-
-    memset(&vicino.succ_addr, 0, sizeof(vicino.succ_addr));
-    vicino.succ_addr.sin_family = AF_INET;
-    vicino.succ_addr.sin_addr.s_addr = ip;
-    vicino.succ_addr.sin_port = ntohl(porta);
-}
-
+// ---------------------------------------------------------------- FILE ----------------------------------------------------------------//
 /* Restituisce la dimensione del file nome_FILE */
 int FILE_dim(char *nome_FILE)
 {
@@ -316,6 +207,27 @@ int FILE_dim(char *nome_FILE)
         fclose(fd);
         return n;
     }
+}
+
+/* scrivo in append dentro il file di registro nome[] ciò che contiene stringa */
+int scrivi_file_append(char nome[], char *stringa)
+{
+    FILE *fd;
+
+    if ((fd = fopen(nome,"ab+")) == NULL)
+    {
+        printf("ERR     Non posso aprire il file %s\n", nome);
+        return -1;
+    }
+    else 
+    {
+        fseek(fd, 0, SEEK_END);
+        fprintf(fd, "%s\n", stringa);
+        printf("LOG     Scrivo %s nel file %s\n", stringa, nome);
+        fclose(fd);
+    }
+
+    return 0;
 }
 
 /* Leggo la riga (riga) del file nome 
@@ -350,8 +262,7 @@ int leggo_file(char nome[], int riga, char *stringa)
 int leggo_file_len(char nome[], int len, char *stringa)
 {
     FILE *fd;
-    int i;
-    int len = 8;
+    int file_len = 8;
 
     if ((fd = fopen(nome,"r")) == NULL)
     {
@@ -360,30 +271,9 @@ int leggo_file_len(char nome[], int len, char *stringa)
     }
     else 
     {
-        
-        fseek(fd, len, SEEK_SET);
+        fseek(fd, file_len, SEEK_SET);
         fgets(stringa, 50, fd);
         printf("LOG     Ho letto: %s\n", stringa);
-        fclose(fd);
-    }
-
-    return 0;
-}
-
-/* scrivo in append dentro il file di registro nome[] ciò che contiene stringa */
-int scrivi_file_append(char nome[], char *stringa)
-{
-    FILE *fd;
-
-    if ((fd = fopen(nome,"a")) == NULL)
-    {
-        printf("ERR     Non posso aprire il file %s\n", nome);
-        return -1;
-    }
-    else 
-    {
-        fprintf(fd, "%s\n", stringa);
-        printf("LOG     Scrivo %s nel file %s\n", stringa, nome);
         fclose(fd);
     }
 
@@ -434,47 +324,137 @@ int registro_aperto(char nome[])
 }
 
 /* crea un nuovo registro e ne restituisce il nome*/
-char* crea_nuovo_registro(int day, int month, int year)
+int crea_nuovo_registro(int day, int month, int year, char nome_file[])
 {
     FILE *fd;
-    char nome_file[BUF_LEN];
-    day++;
+    int ret;
+    int data[3];
+    
+    data_successiva(day, month, year, data);
 
     strcpy(buffer, "");
-    sprintf(buffer, "%d-%d-%d_%d", day, month, year, my_addr.sin_port);
+    sprintf(buffer, "%d-%d-%d_%d", data[0], data[1], data[2], my_addr.sin_port);
     strcpy(nome_file, buffer);
     strncat(nome_file, ".txt", 5);
     
     fd = fopen(nome_file, "a");
+    if (fd == NULL)
+        ret = 0;
+    else
+        ret = -1;   
     fclose(fd);
 
-    if (fd == NULL)
-        return &nome_file;
-    else
-        return NULL;   
+    return ret;
 }
+// --------------------------------------------------------------------------------------------------------------------------------------//
 
-/* scrivo in append dentro il file di registro nome[] ciò che contiene stringa */
-int scrivi_file_append(char nome[], char *stringa)
+// ----------------------------------------------------------------- NET ----------------------------------------------------------------//
+/* Crea il socket per la connessione UDP, in modo da assocciarlo all'indirizzo e alla porta passati.
+   Ritorna -1 in caso di errore */
+int creazione_socket_UDP() 
 {
-    FILE *fd;
-
-    if ((fd = fopen(nome,"ab+")) == NULL)
+    // Creazione del socket UDP
+    printf("LOG     creazione del socket...\n");
+	if((udp_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) 
     {
-        printf("ERR     Non posso aprire il file %s\n", nome);
-        return -1;
-    }
-    else 
+		perror("ERR     Errore nella creazione del socket UDP, ripovare: ");
+		return -1;
+	}
+    printf("LOG     creazione del socket effettuata con successo\n");
+	
+    // Aggancio
+    printf("LOG     Aggancio al socket: bind()...\n");
+    if (bind(udp_socket, (struct sockaddr*) &my_addr, sizeof(my_addr)) == -1) 
     {
-        fseek(fd, 0, SEEK_END);
-        fprintf(fd, "%s\n", stringa);
-        printf("LOG     Scrivo %s nel file %s\n", stringa, nome);
-        fclose(fd);
+        perror("ERR     Bind non riuscita\n");
+        exit(-1);
+    }
+    else
+    {
+        printf("LOG     bind() eseguita con successo\n");
     }
 
+	printf("LOG     Connessione al server %d (porta %d) effettuata con successo\n", my_addr.sin_addr.s_addr, my_addr.sin_port);
     return 0;
 }
 
+void invio_richiesta_start()
+{
+    char req_str[REQUEST_LEN];
+    strcpy(req_str, "REQ_STR");
+    printf("LOG     Invio di %s...\n", req_str);
+
+    if (sendto(udp_socket, req_str, REQUEST_LEN, 0, (struct sockaddr*) &ds_addr, ds_len_addr) == -1)
+    {
+        perror("ERR     Errore durante l'invio dell' ACK");
+    }
+    
+    printf("LOG     %s inviato con successo\n", req_str);
+}
+
+/* Ricezione dell'ACK da parte di addr*/
+void attendo_ACK(struct sockaddr_in addr, char ack[])
+{
+    char buf[REQUEST_LEN];
+    int ret;
+    int len_addr = sizeof(addr);
+    printf("LOG     Attendo %s...\n", ack);
+
+    do
+    {
+        ret = recvfrom(udp_socket, (void*)buf, REQUEST_LEN, 0, (struct sockaddr*) &addr, (socklen_t *__restrict)&len_addr);
+    } while (!strcmp(buf, ack) || ret > 0);
+
+    printf("LOG     %s ricevuto con successo\n", ack);
+}
+
+/* Ricezione IP e porta dei neighbor*/
+void ricezione_vicini()
+{
+    uint32_t ip;
+    in_port_t porta;
+
+    printf("LOG     Ricezione IP e porta del primo neighbor...\n");
+
+    if (recvfrom(udp_socket, (void*)&ip, sizeof(uint32_t), 0, (struct sockaddr*) &ds_addr, (socklen_t *__restrict)&ds_len_addr) == -1)
+    {
+        perror("ERR     Errore durante la ricezione del primo IP");
+    }
+
+    if (recvfrom(udp_socket, (void*)&porta, sizeof(in_port_t), 0, (struct sockaddr*) &ds_addr, (socklen_t *__restrict)&ds_len_addr) == -1)
+    {
+        perror("ERR     Errore durante la ricezione della prima porta");
+    }
+
+    printf("LOG     Ricezione IP e porta del primo neighbor effettuata con successo\n");
+
+    memset(&vicino.prec_addr, 0, sizeof(vicino.prec_addr));
+    vicino.prec_addr.sin_family = AF_INET;
+    vicino.prec_addr.sin_addr.s_addr = ip;
+    vicino.prec_addr.sin_port = ntohl(porta);
+
+    printf("LOG     Ricezione IP e porta del secondo neighbor...\n");
+
+    if (recvfrom(udp_socket, (void*)&ip, sizeof(uint32_t), 0, (struct sockaddr*) &ds_addr, (socklen_t *__restrict)&ds_len_addr) == -1)
+    {
+        perror("ERR     Errore durante la ricezione del secondo IP");
+    }
+
+    if (recvfrom(udp_socket, (void*)&porta, sizeof(in_port_t), 0, (struct sockaddr*) &ds_addr, (socklen_t *__restrict)&ds_len_addr) == -1)
+    {
+        perror("ERR     Errore durante la ricezione della seconda porta");
+    }
+
+    printf("LOG     Ricezione IP e porta del secondo neighbor effettuata con successo\n");
+
+    memset(&vicino.succ_addr, 0, sizeof(vicino.succ_addr));
+    vicino.succ_addr.sin_family = AF_INET;
+    vicino.succ_addr.sin_addr.s_addr = ip;
+    vicino.succ_addr.sin_port = ntohl(porta);
+}
+// --------------------------------------------------------------------------------------------------------------------------------------//
+
+// ---------------------------------------------------------------- AGGR ----------------------------------------------------------------//
 /*  Funzione per aggregare i dati di un singolo registro. */
 int aggrega_regitro(char nome_file[])
 {
@@ -514,7 +494,7 @@ int aggrega_regitro(char nome_file[])
     sscanf(nome_file, "%d-%d-%d_%hd", &d, &m, &y, &porta);
 
     // Cerco data precedente
-    data_pre = data_precedente(d, m, y);
+    data_precedente(d, m, y, data_pre);
 
     //printf("DBG     data precedente: %d-%d-%d\n", d, m, y);
 
@@ -765,6 +745,8 @@ int aggrega(char data1[], char data2[], int aggregato[], char nome_file_err[])
     }
 }*/
 
+// --------------------------------------------------------------------------------------------------------------------------------------//
+
 inline void comandi_disponibili()
 {
     printf("I comandi disponibili sono:\n");
@@ -791,8 +773,6 @@ int main(int argc, char* argv[])
 {
     // ( VARIABILI
         in_port_t my_port = atoi(argv[1]);
-
-        int ret;
 
         fd_set master;
         fd_set read_fds;
@@ -876,7 +856,7 @@ int main(int argc, char* argv[])
                 ricezione_vicini();
 
                 // Bisogna vedere se siamo i primi
-                if (vicino.prec_addr.sin_addr.s_addr == vicino.succ_addr.sin_addr.s_addr == 0)
+                if (vicino.prec_addr.sin_addr.s_addr == 0 && vicino.succ_addr.sin_addr.s_addr == 0)
                 {
                     first = 1; // Non posso comunicare con gli altri peer, perchè non ce ne sono
                 }
@@ -927,7 +907,11 @@ int main(int argc, char* argv[])
                         aggrega_regitro(nome_file);
 
                         // Creo registro con la data successiva a quella odierna
-                        *nome_file = crea_nuovo_registro(timeinfo->tm_mday, timeinfo->tm_mon+1, timeinfo->tm_year+1900);
+                        if (crea_nuovo_registro(timeinfo->tm_mday, timeinfo->tm_mon+1, timeinfo->tm_year+1900, nome_file) != 0)
+                        {
+                            printf("ERR     non ho potuto creare il nuovo registro\n");
+                            continue;
+                        }
 
                         // Apro il registro
                         apri_o_chiudi_registro(nome_file, "aperto");
