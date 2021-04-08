@@ -47,6 +47,150 @@ char carattere1[2];
     struct tm* timeinfo;
 // )
 
+/* dato giorno, mese e anno, calcola la data del giorno precedente*/
+int *data_successiva(int d, int m, int y)
+{
+    int ris[3];
+    
+    if (y%4 == 0) // Anno bisestile
+    {
+        if (m == 2 && d == 29) // Febbraio
+        {
+            d = 1;
+            m++;
+        }
+        if (m == 2 && d < 29) // Febbraio
+        {
+            d++;
+        }
+        else if ((m == 4 || m == 6 || m == 9 || m == 11) && d == 30) // Mesi da 30
+        {
+            d = 1;
+            m++;
+        }
+        else if (m == 12 && d == 31) // L'ultimo dell'anno
+        {
+            d = 1;
+            m = 1;
+            y++;
+        }
+        else if (d == 31) // Mesi da 31
+        {
+            d = 1;
+            m++;
+        }
+        else
+        {
+            d++;
+        }
+    }
+    else // Anno non bisestile
+    { 
+        if (m == 2 && d == 28) // Febbraio
+        {
+            d = 1;
+            m++;
+        }
+        if (m == 2 && d < 28) // Febbraio
+        {
+            d++;
+        }
+        else if ((m == 4 || m == 6 || m == 9 || m == 11) && d == 30) // Mesi da 30
+        {
+            d = 1;
+            m++;
+        }
+        else if (m == 12 && d == 31) // L'ultimo dell'anno
+        {
+            d = 1;
+            m = 1;
+            y++;
+        }
+        else if (d == 31) // Mesi da 31
+        {
+            d = 1;
+            m++;
+        }
+        else
+        {
+            d++;
+        }
+    }
+
+    ris[1] = d;
+    ris[2] = m;
+    ris[3] = y;
+    return ris;
+}
+
+/* dato giorno, mese e anno, calcola la data del giorno successivo*/
+int *data_precedente(int d, int m, int y)
+{
+    int ris[3];
+    // cerco la data precedente
+    if (y%4 == 0) // Anno bisestile
+    {
+        if (m == 3 && d == 1) // Febbraio-Marzo
+        {
+            d = 29;
+            m--;
+        }
+        else if ((m == 5 || m == 7 || m == 10 || m == 12) && d == 1) // Mesi da 30
+        {
+            d = 30;
+            m--;
+        }
+        else if (m == 1 && d == 1) // L'ultimo dell'anno
+        {
+            d = 31;
+            m = 12;
+            y--;
+        }
+        else if (d == 1 && m != 3 && m != 5 && m != 7 && m != 10 && m != 12) // Mesi da 31
+        {
+            d = 31;
+            m--;
+        }
+        else
+        {
+            d--;
+        }
+    }
+    else // Anno non bisestile
+    { 
+        if (m == 3 && d == 1) // Febbraio-Marzo
+        {
+            d = 28;
+            m--;
+        }
+        else if ((m == 5 || m == 7 || m == 10 || m == 12) && d == 1) // Mesi da 30
+        {
+            d = 30;
+            m--;
+        }
+        else if (m == 1 && d == 1) // L'ultimo dell'anno
+        {
+            d = 31;
+            m = 12;
+            y--;
+        }
+        else if (d == 1 && m != 3 && m != 5 && m != 7 && m != 10 && m != 12) // Mesi da 31
+        {
+            d = 31;
+            m--;
+        }
+        else
+        {
+            d--;
+        }
+    }
+
+    ris[1] = d;
+    ris[2] = m;
+    ris[3] = y;
+    return ris;
+}
+
 /* Crea il socket per la connessione UDP, in modo da assocciarlo all'indirizzo e alla porta passati.
    Ritorna -1 in caso di errore */
 int creazione_socket_UDP() 
@@ -174,22 +318,56 @@ int FILE_dim(char *nome_FILE)
     }
 }
 
-/* leggo dentro il file di registro nella posizione (pos) del cursore. */
-void leggi_file(char nome[], int pos, char *stringa, int dim)
+/* Leggo la riga (riga) del file nome 
+int leggo_file(char nome[], int riga, char *stringa)
 {
     FILE *fd;
+    int i;
+    int len = 8;
 
     if ((fd = fopen(nome,"r")) == NULL)
     {
-        printf("ERR     Non posso aprire il file %s\n", nome);
-        exit(-1);
+        printf("ERR     leggo_file(): non posso aprire il file %s\n", nome);
+        return -1;
     }
     else 
     {
-        fseek(fd, pos, SEEK_SET);
-        fgets(stringa, dim, fd);
+        for (i=0; i<riga; i++)
+        {
+            fseek(fd, len, SEEK_SET);
+            fgets(stringa, 50, fd);
+            len += strlen(stringa);
+        }
+
+        printf("LOG     Ho letto: %s\n", stringa);
         fclose(fd);
     }
+
+    return 0;
+}*/
+
+/* Leggo la riga (riga) del file nome */
+int leggo_file_len(char nome[], int len, char *stringa)
+{
+    FILE *fd;
+    int i;
+    int len = 8;
+
+    if ((fd = fopen(nome,"r")) == NULL)
+    {
+        printf("ERR     leggo_file(): non posso aprire il file %s\n", nome);
+        return -1;
+    }
+    else 
+    {
+        
+        fseek(fd, len, SEEK_SET);
+        fgets(stringa, 50, fd);
+        printf("LOG     Ho letto: %s\n", stringa);
+        fclose(fd);
+    }
+
+    return 0;
 }
 
 /* scrivo in append dentro il file di registro nome[] ciò che contiene stringa */
@@ -255,6 +433,7 @@ int registro_aperto(char nome[])
     return !strcmp(stringa, "aperto");
 }
 
+/* crea un nuovo registro e ne restituisce il nome*/
 char* crea_nuovo_registro(int day, int month, int year)
 {
     FILE *fd;
@@ -266,7 +445,7 @@ char* crea_nuovo_registro(int day, int month, int year)
     strcpy(nome_file, buffer);
     strncat(nome_file, ".txt", 5);
     
-    fd = fopen(nome_file, "w");
+    fd = fopen(nome_file, "a");
     fclose(fd);
 
     if (fd == NULL)
@@ -275,20 +454,216 @@ char* crea_nuovo_registro(int day, int month, int year)
         return NULL;   
 }
 
-/* Funzione per aggregare i dati*/
-int aggrega(char data1[], char data2[])
+/* scrivo in append dentro il file di registro nome[] ciò che contiene stringa */
+int scrivi_file_append(char nome[], char *stringa)
+{
+    FILE *fd;
+
+    if ((fd = fopen(nome,"ab+")) == NULL)
+    {
+        printf("ERR     Non posso aprire il file %s\n", nome);
+        return -1;
+    }
+    else 
+    {
+        fseek(fd, 0, SEEK_END);
+        fprintf(fd, "%s\n", stringa);
+        printf("LOG     Scrivo %s nel file %s\n", stringa, nome);
+        fclose(fd);
+    }
+
+    return 0;
+}
+
+/*  Funzione per aggregare i dati di un singolo registro. */
+int aggrega_regitro(char nome_file[])
+{
+    char buf[BUF_LEN];
+    char tipo[2];
+    int totale, variazione;
+    int i, d, m, y;
+    int data_pre[3];
+    in_port_t porta;
+    int pre_aggr_t=0, pre_aggr_p=0;
+    int tt = 0; // Posizione Totale Tamponi
+    int vt = 1; // Posizione Variazione Tamponi 
+    int tp = 2; // Posizione Totale Positivi
+    int vp = 3; // Posizione Variazione Positivi
+    FILE *fd;
+    int aggregato[4]; // aggregato[] contiene i risultati sul totale e sulla variazione di ogni tipo:
+                      //    1) Totale tamponi
+                      //    2) Variazione del numero di tamponi rispetto al giorno precedente
+                      //    3) Totale positivi
+                      //    4) Variazione del numero di positivi rispetto al giorno precedente
+
+    // Inizializiamo 0x7FFFFFFF così da capire come calcolare le variazioni
+    pre_aggr_t = pre_aggr_p = 0x7FFFFFFF;
+    aggregato[tt] = aggregato[vt] = aggregato[tp] = aggregato[vp] = 0;
+    //printf("DBG     pre_aggr_t e pre_aggr_p %d  %d\n", pre_aggr_t, pre_aggr_p);
+
+    // Se il registro è aperto non fare nulla
+    if (registro_aperto(nome_file))
+    {
+        printf("ERR     errore in aggrega_registro(): il registro è ancora aperto\n");
+        return -1;
+    }
+    
+    // Cerco aggregati del giorno precedente per calcolare la variazione
+
+    // Calcolo dei totali del giorno
+    sscanf(nome_file, "%d-%d-%d_%hd", &d, &m, &y, &porta);
+
+    // Cerco data precedente
+    data_pre = data_precedente(d, m, y);
+
+    //printf("DBG     data precedente: %d-%d-%d\n", d, m, y);
+
+    // vado a prendere gli aggregati precedenti
+    if ((fd = fopen("aggr.txt","r")) == NULL)
+    {
+        printf("ERR     leggo_file(): non posso aprire il file 'aggr.txt'\n");
+        return -1;
+    }
+    else
+    {
+        i = 0;
+        //printf("\nDBG     scorro aggr.txt\n");
+        while (i<FILE_dim("aggr.txt"))
+        {
+            fseek(fd, i, SEEK_SET);
+            fgets(buf, 50, fd);   
+
+            //printf("LOG     Ho letto: %s", buf);
+            i += strlen(buf);
+
+            sscanf(buf, "%d:%d:%d %s %d %d", &d, &m, &y, tipo, &totale, &variazione);
+            //printf("DBG     data trovata nel file aggr.txt: %d-%d-%d\n", d, m, y);
+            //printf("DBG     tipo = %s\n", tipo);
+            
+            if (strcmp(tipo, "t") == 0 && data_pre[0] == d && data_pre[1] == m && data_pre[2] == y)
+            {
+                pre_aggr_t = totale;
+                printf("DBG     pre_aggr_t = %d\n", pre_aggr_t);
+            }
+            else if (strcmp(tipo, "n") == 0 && data_pre[0] == d && data_pre[1] == m && data_pre[2] == y)
+            {
+                pre_aggr_p = totale;
+                printf("DBG     pre_aggr_p = %d\n", pre_aggr_p);
+            }          
+        }
+        fclose(fd);
+    }
+
+    // Resetto le variabili usate prima
+    d = 0;
+    m = 0; 
+    y = 0; 
+    strcpy(tipo, "");
+    totale = 0;
+    
+    if ((fd = fopen(nome_file,"r")) == NULL)
+    {
+        printf("ERR     leggo_file(): non posso aprire il file %s\n", nome_file);
+        return -1;
+    }
+    else 
+    {
+        i = strlen("aperto"); // per saltare l'intestazione del registro: aperto/chiuso
+        //printf("\nDBG     scorro %s\n", nome_file);
+        while (i<FILE_dim(nome_file))
+        {
+            fseek(fd, i, SEEK_SET);
+            fgets(buf, 50, fd);   
+
+            printf("LOG     Ho letto: %s", buf);
+            i += strlen(buf);
+
+            sscanf(buf, "%d:%d:%d %s %d", &d, &m, &y, tipo, &totale);
+            
+            if (strcmp(tipo, "t") == 0)
+            {
+                //printf("DBG     TAMPONI\n");
+                //printf("DBG     aggregato[tt] = %d\n", aggregato[tt]);
+                //printf("DBG     totale = %d\n", totale);
+                aggregato[tt] += totale;
+                //printf("DBG     aggregato[tt] = %d\n", aggregato[tt]);
+            }
+            else
+            {
+                //printf("DBG     POSITIVI\n");
+                //printf("DBG     aggregato[tp] = %d\n", aggregato[tp]);
+                //printf("DBG     totale = %d\n", totale);
+                aggregato[tp] += totale;
+                //printf("DBG     aggregato[tp] = %d\n", aggregato[tp]);
+            }
+        }
+        fclose(fd);
+    }
+
+    // Ora ho il totale del giorno d'oggi.
+    // Calcolo la variazione se posso farlo
+    if (pre_aggr_p == 0x7FFFFFFF && pre_aggr_t == 0x7FFFFFFF) // L'aggregazione precedente è mancante
+    {
+        printf("LOG     L'aggregazione precedente è mancante\n");
+        aggregato[vt] = 0x7FFFFFFF;
+        aggregato[vp] = 0x7FFFFFFF; 
+    }
+    else if (pre_aggr_p == 0x7FFFFFFF && pre_aggr_t != 0x7FFFFFFF) // Tamponi tutti negativi
+    {
+        
+        printf("LOG     Tamponi negativi: pre_aggr_p = %d\n", pre_aggr_p);
+        aggregato[vt] = aggregato[tt] - pre_aggr_t;
+        aggregato[vp] = aggregato[tp];
+    }
+    else if (pre_aggr_p != 0x7FFFFFFF && pre_aggr_t != 0x7FFFFFFF)
+    {
+        aggregato[vt] = aggregato[tt] - pre_aggr_t;
+        aggregato[vp] = aggregato[tp] - pre_aggr_p;
+    }
+
+    // Scrivo sul file aggr.txt
+    // ( TAMPONI
+        // Creo stringa da scrivere 
+        strcpy(tipo, "t");
+        sprintf(buf, "%d:%d:%d %s %d %d", d, m, y, tipo, aggregato[tt], aggregato[vt]);
+        printf("LOG     Sto scrivendo: %s\n", buf);
+        
+        // Scrivo in append nel file
+        scrivi_file_append("aggr.txt", buf);
+    // )
+
+    // ( POSITIVI
+        // Creo stringa da scrivere per i 
+        strcpy(tipo, "n");
+        sprintf(buf, "%d:%d:%d %s %d %d", d, m, y, tipo, aggregato[tp], aggregato[vp]);
+        printf("LOG     Sto scrivendo: %s\n", buf);
+        
+        // Scrivo in append nel file
+        scrivi_file_append("aggr.txt", buf);
+    // )
+    return 0;
+}
+
+/*  Funzione per aggregare i dati. L'array aggregato[] contiene
+    i risultati sul totale e sulla variazione di ogni tipo:
+        1) Totale tamponi
+        2) Variazione del numero di tamponi rispetto al giorno precedente
+        3) Totale positivi
+        4) Variazione del numero di positivi rispetto al giorno precedente
+
+    In caso di mancaza di file, ritorna il nome del file mancate in nome_file_eff[]
+int aggrega(char data1[], char data2[], int aggregato[], char nome_file_err[])
 {
     char nome_file[BUF_LEN];
-    // char buf[BUF_LEN];
+    char buf[BUF_LEN];
     int data_inizio[3];
     int data_fine[3];
     int data_corrente[3];
+    char tipo[2];
+    int totale;
+    int i;
     int d, m, y;
-    int ret[4]; // Contiene i risultati sul totale e sulla variazione di ogni tipo:
-                //      1) Totale tamponi
-                //      2) Variazione del numero di tamponi rispetto al giorno precedente
-                //      3) Totale positivi
-                //      4) Variazione del numero di positivi rispetto al giorno precedente
+    int ret;
     
     // Cerco la data odierna
     time(&rawtime);
@@ -328,11 +703,16 @@ int aggrega(char data1[], char data2[])
     m = data_inizio[1];
     y = data_inizio[2];
 
+    aggregato[0] = 0;
+    aggregato[1] = 0;
+    aggregato[2] = 0;
+    aggregato[3] = 0;
+
     // scorro tutti i file, e aggrego i dati
     while (d <= data_fine[0] || m <= data_fine[1] || y <= data_fine[2])
     {
         // Salto i giorni che non esistono 
-        if ((y%4 != 0) && (// Anno non bisestrile
+        if ((y%4 != 0) && (// Anno non bisestile
             (d == 29 && m == 2) || (d == 30 && m == 2) || (d == 31 && m == 2) || // Febbraio
             (d == 31 && m == 4) || // Aprile
             (d == 31 && m == 6) || // Giugno
@@ -342,8 +722,7 @@ int aggrega(char data1[], char data2[])
             continue;
         }
 
-        // Salto i giorni che non esistono 
-        if ((y%4 == 0) && ( // Anno bisestrile
+        if ((y%4 == 0) && ( // Anno bisestile
             (d == 30 && m == 2) || (d == 31 && m == 2) || // Febbraio
             (d == 31 && m == 4) || // Aprile
             (d == 31 && m == 6) || // Giugno
@@ -352,8 +731,39 @@ int aggrega(char data1[], char data2[])
         {
             continue;
         }
+
+        // Creo il nome del file
+        strcpy(nome_file, "");
+        sprintf(nome_file, "%d-%d-%d_%d", d, m, y, my_addr.sin_port);            
+        strncat(nome_file, ".txt", 5);
+
+        // Calcolo dei totali del giorno
+        i = strlen("aperto"); // per saltare l'intestazione del registro: aperto/chiuso
+        while(i < FILE_dim(nome_file))
+        {
+            if (leggo_file_len(nome_file, i, buf) == -1)
+            {
+                printf("ERR     Il file %s non esiste\n", nome_file);
+                strcpy(nome_file_err, nome_file);
+                return -1;
+            }
+
+            sscanf(buf, "%d:%d:%d %s %d", d, m, y, tipo, totale);
+            
+            if (strcmp(tipo, "t") == 0)
+            {
+                aggregato[0] += totale;
+            }
+            else
+            {
+                aggregato[2] += totale;
+            }
+
+            i += strlen(buf);
+        }
+                   
     }
-}
+}*/
 
 inline void comandi_disponibili()
 {
@@ -514,7 +924,7 @@ int main(int argc, char* argv[])
                         apri_o_chiudi_registro(nome_file, "chiuso");
 
                         // Aggrego i dati di quel registro
-                        aggrega();
+                        aggrega_regitro(nome_file);
 
                         // Creo registro con la data successiva a quella odierna
                         *nome_file = crea_nuovo_registro(timeinfo->tm_mday, timeinfo->tm_mon+1, timeinfo->tm_year+1900);
@@ -538,7 +948,7 @@ int main(int argc, char* argv[])
                 }
 
                 // Creo stringa da scrivere
-                sprintf(buffer, "%d:%d:%d, %s, %d", timeinfo->tm_mday, timeinfo->tm_mon+1, timeinfo->tm_year+1900, carattere1, parametro2);
+                sprintf(buffer, "%d:%d:%d %s %d", timeinfo->tm_mday, timeinfo->tm_mon+1, timeinfo->tm_year+1900, carattere1, parametro2);
                 printf("LOG     Sto scrivendo: %s\n", buffer);
                 
                 // Scrivo in append nel file
