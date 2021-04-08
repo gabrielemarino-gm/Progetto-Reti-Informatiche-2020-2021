@@ -14,39 +14,32 @@
 #define CMD_LEN         12   // lunghezza comando da tastiera
 #define REQUEST_LEN     8    // Lunghezza di "REQ_STR\0"
 #define BUF_LEN         1024
-#define POLLING_TIME    5    // Timer    
+#define POLLING_TIME    5    // Timer 
 
-char cmd[REQUEST_LEN];  // Per ricevere i comadi dai peera: REQ - STP
-char buffer[BUF_LEN];   // Usato per memorizzare i comandi da tastiera
-char comando[BUF_LEN];  // comando e parametro sono usati per differenziare i comandi dai parametri dei comandi da tastiera
-int parametro1, parametro2;
-char carattere1[2];
+// --------------------------------------------------------------------------------------------------------------------------------------//
+// -------------------------------------------------------------- VARIABILI -------------------------------------------------------------//
+// --------------------------------------------------------------------------------------------------------------------------------------//
+// socket per comunicare 
+int udp_socket;
+struct sockaddr_in my_addr; // Indirizzi di questo peer
 
-// ( STRUTTURE DATI
-    // Indirizzo di questo peer
-    struct sockaddr_in my_addr;
+struct neighbor
+{
+    struct sockaddr_in prec_addr;
+    struct sockaddr_in succ_addr;
+} vicino;
 
-    // TCP socket per comunicare con gli altri peer
-    int udp_socket;
-    struct sockaddr_in my_addr;
+// UDP socket per comunicare col DS
+in_port_t DS_port = -1;
+struct sockaddr_in ds_addr;
+int ds_len_addr = sizeof(ds_addr);
 
-    struct neighbor
-    {
-        struct sockaddr_in prec_addr;
-        struct sockaddr_in succ_addr;
-    } vicino;
+int first = 1; // Se sono solo non posso contattare altri peer
 
-    // UDP socket per comunicare col DS
-    in_port_t DS_port = -1;
-    struct sockaddr_in ds_addr;
-    int ds_len_addr = sizeof(ds_addr);
 
-    int first = 1;
-
-    time_t rawtime;
-    struct tm* timeinfo;
-// )
-
+// --------------------------------------------------------------------------------------------------------------------------------------//
+// ---------------------------------------------------------------- DATE ----------------------------------------------------------------//
+// --------------------------------------------------------------------------------------------------------------------------------------//
 /* dato giorno, mese e anno, calcola la data del giorno successivo*/
 void data_successiva(int d, int m, int y,  int ris[])
 {    
@@ -185,7 +178,9 @@ void data_precedente(int d, int m, int y,  int ris[3])
     ris[3] = y;
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------------//
 // ---------------------------------------------------------------- FILE ----------------------------------------------------------------//
+// --------------------------------------------------------------------------------------------------------------------------------------//
 /* Restituisce la dimensione del file nome_FILE */
 int FILE_dim(char *nome_FILE)
 {
@@ -346,9 +341,11 @@ int crea_nuovo_registro(int day, int month, int year, char nome_file[])
 
     return ret;
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------------//
+// ----------------------------------------------------------------- NET ----------------------------------------------------------------//
 // --------------------------------------------------------------------------------------------------------------------------------------//
 
-// ----------------------------------------------------------------- NET ----------------------------------------------------------------//
 /* Crea il socket per la connessione UDP, in modo da assocciarlo all'indirizzo e alla porta passati.
    Ritorna -1 in caso di errore */
 int creazione_socket_UDP() 
@@ -452,9 +449,11 @@ void ricezione_vicini()
     vicino.succ_addr.sin_addr.s_addr = ip;
     vicino.succ_addr.sin_port = ntohl(porta);
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------------//
+// ---------------------------------------------------------------- AGGR ----------------------------------------------------------------//
 // --------------------------------------------------------------------------------------------------------------------------------------//
 
-// ---------------------------------------------------------------- AGGR ----------------------------------------------------------------//
 /*  Funzione per aggregare i dati di un singolo registro. */
 int aggrega_regitro(char nome_file[])
 {
@@ -779,6 +778,14 @@ int main(int argc, char* argv[])
         int fd_max;
 
         char nome_file[BUF_LEN];
+        char cmd[REQUEST_LEN];  // Per ricevere i comadi dai peera: REQ - STP
+        char buffer[BUF_LEN];   // Usato per memorizzare i comandi da tastiera
+        char comando[BUF_LEN];  // comando e parametro sono usati per differenziare i comandi dai parametri dei comandi da tastiera
+        int parametro1, parametro2;
+        char carattere1[2];
+
+        time_t rawtime;
+        struct tm* timeinfo;
     // )
 
     // Creazione indirizzo del socket
@@ -866,14 +873,6 @@ int main(int argc, char* argv[])
             // ( ADD
             else if (strcmp(comando, "add") == 0)
             {
-                /*
-                // Se peer non connesso non faccio nulla
-                if(DS_port == -1)
-                {
-                    printf("ERR     Peer non connesso alla rete. Contattare prima il DS tramite il comando start\n");
-                    continue;
-                }*/
-                
                 sscanf(buffer, "%s %s %d", comando, carattere1, &parametro1);
                 
                 // Controllo parametro carattere
