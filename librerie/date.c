@@ -201,25 +201,25 @@ int data_valida(int d, int m, int y)
     // timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900
     if(y > timeinfo->tm_year + 1900)
     {
-        printf("ERR     Immessa una data futura, riprovare\n");
+        printf("\nERR     Immessa una data futura, riprovare\n");
         return 0;
     }
 
     if (m <= 0 || m > 12)
     {
-        printf("ERR     Immesso un mese non valido, riprovare\n");
+        printf("\nERR     Immesso un mese non valido, riprovare\n");
         return 0;
     }
 
     if (d <= 0 || d > 31)
     {
-        printf("ERR     Immesso un giorno non valido, riprovare\n");
+        printf("\nERR     Immesso un giorno non valido, riprovare\n");
         return 0;
     }
 
     if ((m == 4 || m == 6 || m == 9 || m == 11) && d >= 31)
     {
-        printf("ERR     Immesso un giorno non valido, riprovare\n");
+        printf("\nERR     Immesso un giorno non valido, riprovare\n");
         return 0;
     }
 
@@ -227,7 +227,7 @@ int data_valida(int d, int m, int y)
     {
         if (m == 2 && (d == 31 || d == 30))
         {
-            printf("ERR     Immesso un giorno non valido, riprovare\n");
+            printf("\nERR     Immesso un giorno non valido, riprovare\n");
             return 0;
         }
     }
@@ -235,7 +235,7 @@ int data_valida(int d, int m, int y)
     {
         if (m == 2 && (d == 31 || d == 30 || d == 29))
         {
-            printf("ERR     Immesso un giorno non valido, riprovare\n");
+            printf("\nERR     Immesso un giorno non valido, riprovare\n");
             return 0;
         }
     }
@@ -243,17 +243,17 @@ int data_valida(int d, int m, int y)
     // controlliamo se non è una data futura
     if (m > timeinfo->tm_mon + 1 && y == timeinfo->tm_year + 1900)
     {
-        printf("ERR     Immessa una data futura, riprovare\n");
+        printf("\nERR     Immessa una data futura, riprovare\n");
         return 0;
     }
     
 
     if (m == timeinfo->tm_mon + 1 && d > timeinfo->tm_mday)
     {
-        printf("ERR     Immessa una data futura, riprovare\n");
+        printf("\nERR     Immessa una data futura, riprovare\n");
         return 0;
     }
     
-    printf("LOG     La data analizzata è valida!\n");
+    printf("data analizzata è valida!\n");
     return 1;
 }
