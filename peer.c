@@ -16,33 +16,33 @@
 // -------------------------------------------------------------------------------------------------------------------------------------- //
 
 // Lunghezza di un generico buffer
-#define BUF_LEN         1024
+#define BUF_LEN 1024
 
 // Lunghezza di "REQ_STR\0"
-#define REQUEST_LEN     8      
+#define REQUEST_LEN 8
 
 // Lunghezza massima di una data DD:MM:YYYY
-#define LEN_DATA        12      
+#define LEN_DATA 12
 
 // Indici per le date: Day, Month e Year
-#define D               0       
-#define M               1
-#define Y               2
+#define D 0
+#define M 1
+#define Y 2
 
-// Timer 
-#define POLLING_TIME    5  
+// Timer
+#define POLLING_TIME 5
 
 // lunghezza comando da tastiera
-#define CMD_LEN         12   
+#define CMD_LEN 12
 
 // Lunghezza di "REQ_STR\0"
-#define REQUEST_LEN     8 
+#define REQUEST_LEN 8
 
 // -------------------------------------------------------------------------------------------------------------------------------------- //
 // -------------------------------------------------------------- VARIABILI ------------------------------------------------------------- //
 // -------------------------------------------------------------------------------------------------------------------------------------- //
 
-// socket per comunicare 
+// socket per comunicare
 int udp_socket, ascolto_sd, trasporto_sd;
 in_port_t my_port;
 struct sockaddr_in my_addr, peer_addr, mittente; // Indirizzi di questo peer
@@ -58,7 +58,7 @@ in_port_t DS_port = -1;
 struct sockaddr_in ds_addr;
 int ds_len_addr = sizeof(ds_addr);
 
-int first = 1; // Se sono solo non posso contattare altri peer
+int alone = 1; // Se sono solo non posso contattare altri peer
 int boot = 0;  // Se non ho fatto la richiesta di boot non posso contattare gli altri
 
 // Variabili per i nomi dei file
@@ -72,9 +72,9 @@ char nome_file_ultimo_reg[BUF_LEN];
 // -------------------------------------------------------------------------------------------------------------------------------------- //
 
 /* dato giorno, mese e anno, calcola la data del giorno successivo*/
-void data_successiva(int d, int m, int y,  int ris[])
-{    
-    if (y%4 == 0) // Anno bisestile
+void data_successiva(int d, int m, int y, int ris[])
+{
+    if (y % 4 == 0) // Anno bisestile
     {
         if (m == 2 && d == 29) // Febbraio
         {
@@ -107,7 +107,7 @@ void data_successiva(int d, int m, int y,  int ris[])
         }
     }
     else // Anno non bisestile
-    { 
+    {
         if (m == 2 && d == 28) // Febbraio
         {
             d = 1;
@@ -145,9 +145,9 @@ void data_successiva(int d, int m, int y,  int ris[])
 }
 
 /* dato giorno, mese e anno, calcola la data del giorno precedente*/
-void data_precedente(int d, int m, int y,  int ris[3])
+void data_precedente(int d, int m, int y, int ris[3])
 {
-    if (y%4 == 0) // Anno bisestile
+    if (y % 4 == 0) // Anno bisestile
     {
         if (m == 3 && d == 1) // Febbraio-Marzo
         {
@@ -176,7 +176,7 @@ void data_precedente(int d, int m, int y,  int ris[3])
         }
     }
     else // Anno non bisestile
-    { 
+    {
         if (m == 3 && d == 1) // Febbraio-Marzo
         {
             d = 28;
@@ -235,36 +235,34 @@ int data1_minore_data2(int d1, int m1, int y1, int d2, int m2, int y2)
 {
     if (d1 < d2 && m1 == m2 && y1 == y2)
     {
+        //printf("DBG     %d:%d:%d < %d:%d:%d\n", d1, m1, y1, d2, m2, y2);
         return 1;
     }
-    else if (d1 > d2 && m1 < m2 && y1 == y2)
+    else if (m1 < m2 && y1 == y2)
     {
-        return 1;
-    }
-    else  if (d1 < d2 && m1 < m2 && y1 == y2)
-    {
+        //printf("DBG     %d:%d:%d < %d:%d:%d\n", d1, m1, y1, d2, m2, y2);
         return 1;
     }
     else if (y1 < y2)
     {
+        //printf("DBG     %d:%d:%d < %d:%d:%d\n", d1, m1, y1, d2, m2, y2);
         return 1;
     }
 
     return 0;
 }
 
-
 /* Ritorna 1 se la data d:m:y è valida, 0 altrimenti*/
 int data_valida(int d, int m, int y)
 {
     time_t rawtime;
-    struct tm* timeinfo;
+    struct tm *timeinfo;
 
     time(&rawtime);
     timeinfo = localtime(&rawtime);
 
     // timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900
-    if(y > timeinfo->tm_year + 1900)
+    if (y > timeinfo->tm_year + 1900)
     {
         printf("\nERR     Immessa una data futura, riprovare\n");
         return 0;
@@ -288,7 +286,7 @@ int data_valida(int d, int m, int y)
         return 0;
     }
 
-    if (y%4 == 0) // Anno bisestile
+    if (y % 4 == 0) // Anno bisestile
     {
         if (m == 2 && (d == 31 || d == 30))
         {
@@ -311,18 +309,16 @@ int data_valida(int d, int m, int y)
         printf("\nERR     Immessa una data futura, riprovare\n");
         return 0;
     }
-    
 
     if (m == timeinfo->tm_mon + 1 && d > timeinfo->tm_mday)
     {
         printf("\nERR     Immessa una data futura, riprovare\n");
         return 0;
     }
-    
+
     printf("data analizzata è valida!\n");
     return 1;
 }
-
 
 // -------------------------------------------------------------------------------------------------------------------------------------- //
 // -------------------------------------------------------------- FILE TXT -------------------------------------------------------------- //
@@ -336,7 +332,6 @@ void crea_file(char *nome)
     fclose(fd);
 }
 
-
 int FILE_dim(char *nome_FILE)
 {
     int n;
@@ -346,7 +341,7 @@ int FILE_dim(char *nome_FILE)
     if (fd == NULL)
     {
         printf("ERR     FILE_dim(): non posso aprire il file %s\n", nome_FILE);
-        return -1;  // Errore
+        return -1; // Errore
     }
     else
     {
@@ -365,12 +360,12 @@ int scrivi_file_append(char nome[], char *stringa)
 {
     FILE *fd;
 
-    if ((fd = fopen(nome,"a+")) == NULL)
+    if ((fd = fopen(nome, "a+")) == NULL)
     {
         printf("ERR     scrivi_file_append(): non posso aprire il file %s\n", nome);
         return -1;
     }
-    else 
+    else
     {
         fseek(fd, 0, SEEK_END);
         fprintf(fd, "%s\n", stringa);
@@ -385,12 +380,12 @@ int sovrascrivi_file(char nome[], char *stringa)
 {
     FILE *fd;
 
-    if ((fd = fopen(nome,"w")) == NULL)
+    if ((fd = fopen(nome, "w")) == NULL)
     {
         printf("ERR     sovrascrivi_file(): non posso aprire il file %s\n", nome);
         return -1;
     }
-    else 
+    else
     {
         fseek(fd, 0, SEEK_END);
         fprintf(fd, "%s", stringa);
@@ -408,16 +403,15 @@ int registro_aperto(char nome[])
     FILE *fd;
 
     // Apro in lettura così che se il file non esiste, fopen ritorna un errore
-    if ((fd = fopen(nome,"r")) == NULL)
+    if ((fd = fopen(nome, "r")) == NULL)
     {
         // Il registro non esiste, quindi è chiuso
         return 0;
     }
-    
+
     fclose(fd);
     return 1;
 }
-
 
 /* Data una data singola, verifica se esiste un record con quella data nel file aggr.txt.
    Se non esiste, allora scrive i data[] la data mancante
@@ -434,7 +428,6 @@ int verifica_presenza_della_data(char nome_file[], int this_d, int this_m, int t
     char buf[BUF_LEN];
 
     //printf("DBG     verifica_presenza_della_data(): START\n");
-
 
     if ((fd = fopen(nome_file, "r")) == NULL)
     {
@@ -463,7 +456,6 @@ int verifica_presenza_della_data(char nome_file[], int this_d, int this_m, int t
     return 0;
 }
 
-
 /* Data una data singola, verifica se esiste un record con quella data nel file aggr.txt.
    Se non esiste, allora scrive i data[] la data mancante
    Ritorna:
@@ -479,7 +471,6 @@ int verifica_presenza_della_data_senza_tipo(char nome_file[], int this_d, int th
     char buf[BUF_LEN];
 
     //printf("DBG     verifica_presenza_della_data(): START\n");
-
 
     if ((fd = fopen(nome_file, "r")) == NULL)
     {
@@ -518,49 +509,48 @@ int aggrega_registro(char nome_file[])
     int d1, m1, y1;
     int porta;
     int tt = 0; // Posizione Totale Tamponi
-    int tp = 1; // Posizione Totale Positivi 
+    int tp = 1; // Posizione Totale Positivi
     FILE *fd;
     int aggregato[2]; // aggregato[] contiene i risultati sul totale di ogni tipo:
                       //    1) Totale tamponi
                       //    2) Totale positivi
 
-    FILE *fd_app;
+    FILE *fd_temp;
     long i;
     int this_d, this_m, this_y;
 
-
     // Inizializiamo 0x7FFFFFFF così da capire come calcolare le variazioni
     aggregato[tt] = aggregato[tp] = 0;
-    
+
     // Cerco la data del giorno richiesto
     sscanf(nome_file, "reg_%d-%d-%d_%d", &this_d, &this_m, &this_y, &porta);
-    
+
     //printf("DBG     nome_file: %s\n", nome_file);
 
     // Aggrego tutte le entrate del registro
-    if ((fd = fopen(nome_file,"r")) == NULL)
+    if ((fd = fopen(nome_file, "r")) == NULL)
     {
         perror("ERR     aggrega_registro(): non posso aprire il file di registro");
         return -1;
     }
-    else 
+    else
     {
         i = 0;
-        while (i<FILE_dim(nome_file)) //Registro
+        while (i < FILE_dim(nome_file)) //Registro
         {
             fseek(fd, i, SEEK_SET);
-            fgets(buf, 50, fd);   
+            fgets(buf, 50, fd);
 
             // printf("DBG     Ho letto: %s", buf);
             i += strlen(buf);
 
             sscanf(buf, "%d:%d:%d %c %d", &d1, &m1, &y1, &tipo, &totale);
-            
+
             if (tipo == 'T')
             {
                 aggregato[tt] += totale;
             }
-            
+
             if (tipo == 'N')
             {
                 aggregato[tp] += totale;
@@ -570,7 +560,7 @@ int aggrega_registro(char nome_file[])
     }
 
     printf("LOG     Aggr: <%d:%d:%d T %d | %d:%d:%d N %d>\n", d1, m1, y1, aggregato[tt], d1, m1, y1, aggregato[tp]);
-    
+
     // Elimino il registro e metto i dati totali nel file "miei_aggr"
     remove(nome_file); // Chiudo il registro
 
@@ -585,51 +575,50 @@ int aggrega_registro(char nome_file[])
         // Devo aggiungere a quella data, il mio totale
 
         printf("DBG     verifica_presenza_della_data_senza_tipo() == 1\n");
-        
+
         if ((fd = fopen(nome_file, "r")) == NULL)
         {
             perror("ERR     Non posso aprire il file <miei_aggr.txt>");
             return -1;
         }
-        else 
+        else
         {
-            fd_app = fopen("temporaneo.bin","a+");
-            
-            i=0;
-            while (i<FILE_dim(nome_file))
+            fd_temp = fopen("temporaneo.bin", "a+");
+
+            i = 0;
+            while (i < FILE_dim(nome_file))
             {
                 fseek(fd, i, SEEK_SET);
                 fgets(buf, 50, fd); // Leggo dal vecchio file
-                i += strlen(buf); 
+                i += strlen(buf);
                 printf("DBG     Ho letto: %s", buf);
                 sscanf(buf, "%d:%d:%d %c %d", &d1, &m1, &y1, &tipo, &totale);
-                
+
                 if (this_d == d1 && this_m == m1 && this_y == y1)
-                {                                      
+                {
                     if (tipo == 'T')
                     {
                         aggregato[tt] += totale;
                         sprintf(buf, "%d:%d:%d T %d\n", d1, m1, y1, aggregato[tt]);
                     }
-            
-                
+
                     if (tipo == 'N')
                     {
                         aggregato[tp] += totale;
                         sprintf(buf, "%d:%d:%d N %d\n", d1, m1, y1, aggregato[tp]);
                     }
-               
-                    fprintf(fd_app, "%s", buf); 
-                    continue;                     
+
+                    fprintf(fd_temp, "%s", buf);
+                    continue;
                 }
-                
+
                 sscanf(buf, "%d:%d:%d %c %d", &d1, &m1, &y1, &tipo, &totale);
-                fprintf(fd_app, "%s", buf);
+                fprintf(fd_temp, "%s", buf);
             }
 
             fclose(fd);
-            fclose(fd_app);
-            
+            fclose(fd_temp);
+
             // Rinomino il nuovo file e elimino il vecchio
             remove(nome_file);
             rename("temporaneo.bin", nome_file);
@@ -643,29 +632,26 @@ int aggrega_registro(char nome_file[])
         printf("LOG     Scrivo <%d:%d:%d T %d | %d:%d:%d N %d> nel file <%s>\n", d1, m1, y1, aggregato[tt], d1, m1, y1, aggregato[tp], nome_file);
         scrivi_file_append(nome_file, buf);
     }
-    
+
     return 0;
 }
-
 
 /* Aggiunge nel file degli aggregati il dato che ha richiesto nella rete.*/
 int aggiungi_aggr(char nome_file[], int this_data[], char this_tipo, int this_tot)
 {
     FILE *fd;
-    FILE *fd_app;
+    FILE *fd_temp;
     char buf_app[BUF_LEN];
-    char buf[BUF_LEN];    
+    char buf[BUF_LEN];
     char tipo;
     int d, m, y, tot;
     int i;
     //int data_succ[3];
-    
+
     //printf("DBG     aggiungi_aggr(): START\n");
-
-    printf("LOG     Aggiungo aggregato ricevuto nel file <%s>\n", nome_file);
-
+    // Creo la entry da aggiungere
     sprintf(buf, "%d:%d:%d %c %d", this_data[D], this_data[M], this_data[Y], this_tipo, this_tot);
-    printf("LOG     Record da aggiungere: %d:%d:%d %c %d\n", this_data[D], this_data[M], this_data[Y], this_tipo, this_tot);
+    printf("LOG     Aggiungo il record <%d:%d:%d %c %d> nel file <%s>\n", this_data[D], this_data[M], this_data[Y], this_tipo, this_tot, nome_file);
 
     if ((fd = fopen(nome_file, "r+")) == NULL)
     {
@@ -675,7 +661,7 @@ int aggiungi_aggr(char nome_file[], int this_data[], char this_tipo, int this_to
     }
     else
     {
-        fd_app = fopen("temporaneo.txt", "a+");
+        fd_temp = fopen("temporaneo.txt", "a+");
         i = 0;
 
         while (i < FILE_dim(nome_file)) // Copio da 0 alla posizione prima a quella in cui devo scrivere
@@ -692,22 +678,22 @@ int aggiungi_aggr(char nome_file[], int this_data[], char this_tipo, int this_to
             // Scrivo nel nuovo file
             if (data1_minore_data2(d, m, y, this_data[D], this_data[M], this_data[Y]))
             {
-                fprintf(fd_app, "%s", buf_app);
+                fprintf(fd_temp, "%s", buf_app);
                 //printf("DBG     1) Scrivo %s nel file 'temporaneo.txt'\n", buf_app);
             }
             else
             {
-                i -= strlen(buf_app); // Non l'ho copiato e quindi devo riportare il cursore dietro per farlo dopo
+                i -= strlen(buf_app); // Non l'ho ancora scritto e quindi devo riportare il cursore dietro per farlo dopo
                 break;
             }
         }
 
         // Ora devo scrivere la nuova entry
         sprintf(buf, "%d:%d:%d %c %d", this_data[D], this_data[M], this_data[Y], this_tipo, this_tot);
-        fprintf(fd_app, "%s\n", buf);
-        //printf("DBG     -) Scrivo %s nel file 'temporaneo.txt'\n", buf);
+        fprintf(fd_temp, "%s\n", buf);
+        //printf("DBG     -) Scrivo <%s> nel file 'temporaneo.txt'", buf);
 
-        while (i < FILE_dim(nome_file)) // Copio da 0 alla posizione prima a quella in cui devo scrivere
+        while (i < FILE_dim(nome_file)) // Copio dalla posizione dopo quella in cui ho scritto fine alla fine
         {
             // Leggo dal vecchio file
             fseek(fd, i, SEEK_SET);
@@ -723,12 +709,12 @@ int aggiungi_aggr(char nome_file[], int this_data[], char this_tipo, int this_to
             }*/
 
             // Scrivo nel nuovo file
-            fprintf(fd_app, "%s", buf_app);
+            fprintf(fd_temp, "%s", buf_app);
             //printf("DBG     2) Scrivo %s nel file 'temporaneo.txt'\n", buf_app);
         }
 
         fclose(fd);
-        fclose(fd_app);
+        fclose(fd_temp);
 
         // Rinomino il nuovo file e elimino il vecchio
         remove(nome_file);
@@ -738,7 +724,6 @@ int aggiungi_aggr(char nome_file[], int this_data[], char this_tipo, int this_to
 
     return 0;
 }
-
 
 void stampa_richiesta(char nome_file[], int data_ini[], int data_fin[], char asterisco1, char asterisco2, char tipo_attuale, char tipo_aggregato[])
 {
@@ -764,10 +749,9 @@ void stampa_richiesta(char nome_file[], int data_ini[], int data_fin[], char ast
     {
         if (strcmp(tipo_aggregato, "totale") == 0)
             printf("\n--------------------- Totale richiesto ---------------------\n");
-        
+
         if (strcmp(tipo_aggregato, "variazione") == 0)
             printf("\n------------------- Variazioni richieste -------------------\n");
-        
 
         while (i < FILE_dim(nome_file))
         {
@@ -778,7 +762,7 @@ void stampa_richiesta(char nome_file[], int data_ini[], int data_fin[], char ast
             i += strlen(buf);
 
             sscanf(buf, "%d:%d:%d %c %d", &d, &m, &y, &tipo, &tot);
-            
+
             if (data_ini[D] == d && data_ini[M] == m && data_ini[Y] == y)
                 stampa = 1;
 
@@ -787,13 +771,13 @@ void stampa_richiesta(char nome_file[], int data_ini[], int data_fin[], char ast
             {
                 if (tipo == 'T' && tipo == tipo_attuale) // Devo semplicemete calcolare il totale
                 {
-                    tot_aggr += tot; 
-                }  
-                
+                    tot_aggr += tot;
+                }
+
                 if (tipo == 'N' && tipo == tipo_attuale) // Devo calcolare volta per volta la variazione
                 {
                     tot_aggr += tot;
-                }                
+                }
             }
 
             // VARIAZIONE
@@ -808,11 +792,11 @@ void stampa_richiesta(char nome_file[], int data_ini[], int data_fin[], char ast
                         continue;
                     }
 
-                    variazione = tot - tot_pre; 
+                    variazione = tot - tot_pre;
                     tot_pre = tot;
                     printf("%d:%d:%d %d\n", d, m, y, variazione);
-                }  
-                
+                }
+
                 if (tipo == 'N' && tipo == tipo_attuale) // Devo calcolare volta per volta la variazione
                 {
                     if (primo)
@@ -822,10 +806,10 @@ void stampa_richiesta(char nome_file[], int data_ini[], int data_fin[], char ast
                         continue;
                     }
 
-                    variazione = tot - tot_pre; 
+                    variazione = tot - tot_pre;
                     tot_pre = tot;
                     printf("%d:%d:%d %d\n", d, m, y, variazione);
-                }                
+                }
             }
 
             if (data_fin[D] == d && data_fin[M] == m && data_fin[Y] == y)
@@ -835,14 +819,13 @@ void stampa_richiesta(char nome_file[], int data_ini[], int data_fin[], char ast
         // Stampo il totale
         if (strcmp(tipo_aggregato, "totale") == 0)
         {
-            printf("Dal %d:%d:%d al %d:%d:%d il totale di %s è %d \n", data_ini[D], data_ini[M], data_ini[Y], data_fin[D], data_fin[M], data_fin[Y], (tipo_attuale == 'T')? "tamponi fatti":"casi positivi", tot_aggr);
+            printf("Dal %d:%d:%d al %d:%d:%d il totale di %s è %d \n", data_ini[D], data_ini[M], data_ini[Y], data_fin[D], data_fin[M], data_fin[Y], (tipo_attuale == 'T') ? "tamponi fatti" : "casi positivi", tot_aggr);
         }
 
         printf("------------------------------------------------------------\n");
         printf("\n");
     }
 }
-
 
 /*  Dato tipo e data dell'aggregato, ricerca il dato nel file degli aggregati passato.
     Lascia in totale il valore cercato, altrimeti se non c'è nessun valore per quella data 
@@ -888,7 +871,7 @@ void cerca_totale(char nome_file[], int data[], char tipo_attuale, int *totale, 
         // Se sono qui la data è mancante
         if (flag == 1)
             *totale = 0xFFFFFFFF;
-        else  
+        else
             *totale = 0;
     }
 }
@@ -913,12 +896,11 @@ int creazione_socket_TCP()
     {
         printf("LOG     bind() eseguita con successo\n");
     }
-        
+
     listen(ascolto_sd, 10);
     printf("LOG     Creato socket TCP in ascolto: %d\n", ascolto_sd);
     return 0;
 }
-
 
 /* Instaura una connessione TCP con i due vicini che rispondono con l'eventuale dato mancante*/
 int richiedi_ai_vicini(int data_i[], char tipo_attuale)
@@ -937,22 +919,22 @@ int richiedi_ai_vicini(int data_i[], char tipo_attuale)
     // NEIGHBOR SINISTRO
     sd_sinistro = socket(AF_INET, SOCK_STREAM, 0);
 
-    if(connect(sd_sinistro, (struct sockaddr *)&vicino.addr_sinistro, sizeof(vicino.addr_sinistro)) == -1)
+    if (connect(sd_sinistro, (struct sockaddr *)&vicino.addr_sinistro, sizeof(vicino.addr_sinistro)) == -1)
     {
         perror("ERR     Errore nella connect() al vicino sinistro");
         return -1;
     }
-    
+
     printf("LOG     Invio il messaggio <%s> al vicino sinistro %d\n", buf, ntohs(vicino.addr_sinistro.sin_port));
 
     // Invio lunghezza del messaggio
-    if (send(sd_sinistro, (void*) &buf_len, sizeof(int), 0) == -1)
+    if (send(sd_sinistro, (void *)&buf_len, sizeof(int), 0) == -1)
     {
         printf("ERR     Dimensione del messaggio non inviato correttamente\n");
         return -1;
     }
 
-    // Invio messaggio di richiesta    
+    // Invio messaggio di richiesta
     if ((send(sd_sinistro, (void *)buf, strlen(buf), 0)) == -1)
     {
         printf("ERR     Messaggio non inviato correttamente\n");
@@ -978,22 +960,22 @@ int richiedi_ai_vicini(int data_i[], char tipo_attuale)
     // NEIGHBOR DESTRO
     sd_destro = socket(AF_INET, SOCK_STREAM, 0);
 
-    if(connect(sd_destro, (struct sockaddr *)&vicino.addr_destro, sizeof(vicino.addr_destro)) == -1)
+    if (connect(sd_destro, (struct sockaddr *)&vicino.addr_destro, sizeof(vicino.addr_destro)) == -1)
     {
         perror("ERR     Errore nella connect() al vicino sinistro");
         return -1;
     }
-    
+
     printf("LOG     Invio il messaggio <%s> al vicino destro %d\n", buf, ntohs(vicino.addr_destro.sin_port));
 
     // Invio lunghezza del messaggio
-    if (send(sd_destro, (void*) &buf_len, sizeof(int), 0) == -1)
+    if (send(sd_destro, (void *)&buf_len, sizeof(int), 0) == -1)
     {
         printf("ERR     Dimensione del messaggio non inviato correttamente\n");
         return -1;
     }
 
-    // Invio messaggio di richiesta    
+    // Invio messaggio di richiesta
     if ((send(sd_destro, (void *)buf, strlen(buf), 0)) == -1)
     {
         printf("ERR     Messaggio non inviato correttamente\n");
@@ -1013,13 +995,12 @@ int richiedi_ai_vicini(int data_i[], char tipo_attuale)
     if (totale != 0xFFFFFFFF)
     {
         // Aggiornare il dato
-        aggiungi_aggr(nome_aggr, data_i, tipo_attuale, totale);        
+        aggiungi_aggr(nome_aggr, data_i, tipo_attuale, totale);
         return 0;
     }
 
     return -1;
 }
-
 
 /* Richiesta di flooding.
    Il flag 'transito' serve a differenziare il comportamento della funzione quando è chiamata per iniziare una richiesta di flooding
@@ -1038,27 +1019,27 @@ void flooding(char req[], int data_i[], char tipo_attuale, int totale_attuale, i
         //printf("DBG     La richiesta di flooding parte da me!\n");
         // Creo il messaggio da inviare per fare la richiesta
         strcpy(buf, "");
-        sprintf(buf, "FLT_WAIT %d:%d:%d %c %d %d ", data_i[D], data_i[M], data_i[Y], tipo_attuale, totale_attuale, porta);
+        sprintf(buf, "FLD_WAIT %d:%d:%d %c %d %d ", data_i[D], data_i[M], data_i[Y], tipo_attuale, totale_attuale, porta);
         buf_len = strlen(buf);
 
         sd_sinistro = socket(AF_INET, SOCK_STREAM, 0);
 
-        if(connect(sd_sinistro, (struct sockaddr *)&vicino.addr_sinistro, sizeof(vicino.addr_sinistro)) == -1)
+        if (connect(sd_sinistro, (struct sockaddr *)&vicino.addr_sinistro, sizeof(vicino.addr_sinistro)) == -1)
         {
             perror("ERR     Errore nella connect() al vicino sinistro");
             return;
         }
-        
+
         printf("LOG     Invio il messaggio <%s> al vicino sinistro %d\n", buf, ntohs(vicino.addr_sinistro.sin_port));
 
         // Invio lunghezza del messaggio
-        if (send(sd_sinistro, (void*) &buf_len, sizeof(int), 0) == -1)
+        if (send(sd_sinistro, (void *)&buf_len, sizeof(int), 0) == -1)
         {
             printf("ERR     Dimensione del messaggio non inviato correttamente\n");
             return;
         }
 
-        // Invio messaggio di richiesta    
+        // Invio messaggio di richiesta
         if ((send(sd_sinistro, (void *)buf, strlen(buf), 0)) == -1)
         {
             printf("ERR     Messaggio non inviato correttamente\n");
@@ -1068,27 +1049,27 @@ void flooding(char req[], int data_i[], char tipo_attuale, int totale_attuale, i
     // Creo il messaggio da inviare per fare la richiesta di flooding
     sprintf(buf, "%s %d:%d:%d %c %d %d ", req, data_i[D], data_i[M], data_i[Y], tipo_attuale, totale_attuale, porta);
     //printf("DBG     flooding(): buf = <%s> | len = <%ld>\n", buf, strlen(buf));
-    buf_len = strlen(buf);    
- 
-    // La richiesta di floting percorre un solo verso. 
+    buf_len = strlen(buf);
+
+    // La richiesta di floting percorre un solo verso.
     sd_destro = socket(AF_INET, SOCK_STREAM, 0);
 
-    if(connect(sd_destro, (struct sockaddr *)&vicino.addr_destro, sizeof(vicino.addr_destro)) == -1)
+    if (connect(sd_destro, (struct sockaddr *)&vicino.addr_destro, sizeof(vicino.addr_destro)) == -1)
     {
         perror("ERR     Errore nella connect() al vicino sinistro");
         return;
     }
-    
+
     printf("LOG     Invio il messaggio <%s> al vicino destro %d\n", buf, ntohs(vicino.addr_destro.sin_port));
 
     // Invio lunghezza del messaggio
-    if (send(sd_destro, (void*) &buf_len, sizeof(int), 0) == -1)
+    if (send(sd_destro, (void *)&buf_len, sizeof(int), 0) == -1)
     {
         printf("ERR     Dimensione del messaggio non inviato correttamente\n");
         return;
     }
 
-    // Invio messaggio di richiesta    
+    // Invio messaggio di richiesta
     if ((send(sd_destro, (void *)buf, strlen(buf), 0)) == -1)
     {
         printf("ERR     Messaggio non inviato correttamente\n");
@@ -1112,9 +1093,7 @@ void flooding(char req[], int data_i[], char tipo_attuale, int totale_attuale, i
         // Aggiornare il dato
         aggiungi_aggr(nome_aggr, data_i, tipo_attuale, totale);
     }
-
 }
-
 
 /* Data una data di inizio e fine, o eventualmente gli asterischi asterischi, verifico la presenza dei dati richiesti.
    Se manca qualche dato lo richiedo ai vicini, e poi faccio l'eventuale richiesta di flooding.
@@ -1141,7 +1120,7 @@ int verifica_presenza_dati(int data_ini[], int data_fin[], char asterisco1, char
         {
             if (verifica_presenza_della_data(nome_aggr, data_i[D], data_i[M], data_i[Y], tipo_attuale) == 0) // Non ho trovato la data
             {
-                if (first == 1)
+                if (alone == 1)
                 {
                     printf("WRN     Questo peer è l'unico della rete, non posso fare flooding\n");
                     return -1;
@@ -1152,7 +1131,7 @@ int verifica_presenza_dati(int data_ini[], int data_fin[], char asterisco1, char
                     printf("ERR     Questo peer non ha fatto boot, si prega di eseguire prima il comando <start>\n");
                     return -1;
                 }
-                    
+
                 if (richiedi_ai_vicini(data_i, tipo_attuale) == -1)
                 {
                     printf("ERR     Non è stato possibile chiedere ai vicini, oppure i vicini non hanno il dato richiesto\n");
@@ -1164,7 +1143,7 @@ int verifica_presenza_dati(int data_ini[], int data_fin[], char asterisco1, char
                     // Cerco il mio totale di quel giorno per mandarlo insieme alla richiesta di flooding, così che possa fare il giro della rete
                     cerca_totale(nome_miei_aggr, data_i, tipo_attuale, &mio_tot, 0);
                     //printf("DBG     Il mio totale prima dell flooding: %d\n", mio_tot);
-                    flooding("FLT_REQ", data_i, tipo_attuale, mio_tot, my_port, 0);
+                    flooding("FLD_REQ", data_i, tipo_attuale, mio_tot, my_port, 0);
                     flood = 0;
                 }
             }
@@ -1173,11 +1152,11 @@ int verifica_presenza_dati(int data_ini[], int data_fin[], char asterisco1, char
             n_giorni--;
         }
     }
-    else if ( asterisco1 == '*' && astrisco2 != '*') // *-data_fine
+    else if (asterisco1 == '*' && astrisco2 != '*') // *-data_fine
     {
         // Non essendo stata indicata la data di lower bound, imposto come prima data una data comune per tutti.
         data_i[D] = data_ini[D] = 1;
-        data_i[M] = data_ini[M] = 4;
+        data_i[M] = data_ini[M] = 5;
         data_i[Y] = data_ini[Y] = 2021;
 
         printf("LOG     periodo preso in cosiderazione: dal %d:%d:%d al %d:%d:%d\n", data_ini[D], data_ini[M], data_ini[Y], data_fin[D], data_fin[M], data_fin[Y]);
@@ -1188,7 +1167,7 @@ int verifica_presenza_dati(int data_ini[], int data_fin[], char asterisco1, char
         {
             if (verifica_presenza_della_data(nome_aggr, data_i[D], data_i[M], data_i[Y], tipo_attuale) == 0) // Non ho trovato la data
             {
-                if (first == 1)
+                if (alone == 1)
                 {
                     printf("WRN     Questo peer è l'unico della rete, non posso fare flooding\n");
                     return -1;
@@ -1210,7 +1189,7 @@ int verifica_presenza_dati(int data_ini[], int data_fin[], char asterisco1, char
                 {
                     // Cerco il mio totale di quel giorno per mandarlo insieme alla richiesta di flooding, così che possa fare il giro della rete
                     cerca_totale(nome_miei_aggr, data_i, tipo_attuale, &mio_tot, 0);
-                    flooding("FLT_REQ", data_i, tipo_attuale, mio_tot, my_port, 0);
+                    flooding("FLD_REQ", data_i, tipo_attuale, mio_tot, my_port, 0);
                     flood = 0;
                 }
             }
@@ -1228,8 +1207,8 @@ int verifica_presenza_dati(int data_ini[], int data_fin[], char asterisco1, char
         if (registro_aperto(nome_reg) == 1)
         {
             data_precedente(data_fin[D], data_fin[M], data_fin[Y], data_fin);
-        }   
-        
+        }
+
         //printf("DBG     data_inizio-* data presa dal registro: %d:%d:%d\n", data_fin[D], data_fin[M], data_fin[Y]);
 
         data_i[D] = data_ini[D];
@@ -1244,7 +1223,7 @@ int verifica_presenza_dati(int data_ini[], int data_fin[], char asterisco1, char
         {
             if (verifica_presenza_della_data(nome_aggr, data_i[D], data_i[M], data_i[Y], tipo_attuale) == 0) // Non ho trovato la data
             {
-                if (first == 1)
+                if (alone == 1)
                 {
                     printf("WRN     Questo peer è l'unico della rete, non posso fare flooding\n");
                     return -1;
@@ -1266,8 +1245,9 @@ int verifica_presenza_dati(int data_ini[], int data_fin[], char asterisco1, char
                 {
                     // Cerco il mio totale di quel giorno per mandarlo insieme alla richiesta di flooding, così che possa fare il giro della rete
                     cerca_totale(nome_miei_aggr, data_i, tipo_attuale, &mio_tot, 0);
-                    flooding("FLT_REQ", data_i, tipo_attuale, mio_tot, my_port, 0);
-                    flood = 0;;
+                    flooding("FLD_REQ", data_i, tipo_attuale, mio_tot, my_port, 0);
+                    flood = 0;
+                    ;
                 }
             }
 
@@ -1278,16 +1258,16 @@ int verifica_presenza_dati(int data_ini[], int data_fin[], char asterisco1, char
     else // *-*
     {
         data_i[D] = data_ini[D] = 1;
-        data_i[M] = data_ini[M] = 4;
+        data_i[M] = data_ini[M] = 5;
         data_i[Y] = data_ini[Y] = 2021;
 
         sscanf(nome_reg, "reg_%d-%d-%d_", &data_fin[D], &data_fin[M], &data_fin[Y]);
-        
+
         if (registro_aperto(nome_reg) == 1)
         {
             data_precedente(data_fin[D], data_fin[M], data_fin[Y], data_fin);
-        }       
-        
+        }
+
         printf("LOG     periodo preso in cosiderazione: dal %d:%d:%d al %d:%d:%d\n", data_ini[D], data_ini[M], data_ini[Y], data_fin[D], data_fin[M], data_fin[Y]);
 
         n_giorni = numero_giorni_fra_due_date(data_ini[D], data_ini[M], data_ini[Y], data_fin[D], data_fin[M], data_fin[Y]);
@@ -1296,7 +1276,7 @@ int verifica_presenza_dati(int data_ini[], int data_fin[], char asterisco1, char
         {
             if (verifica_presenza_della_data(nome_aggr, data_i[D], data_i[M], data_i[Y], tipo_attuale) == 0) // Non ho trovato la data
             {
-                if (first == 1)
+                if (alone == 1)
                 {
                     printf("WRN     Questo peer è l'unico della rete, non posso fare flooding\n");
                     return -1;
@@ -1318,7 +1298,7 @@ int verifica_presenza_dati(int data_ini[], int data_fin[], char asterisco1, char
                 {
                     // Cerco il mio totale di quel giorno per mandarlo insieme alla richiesta di flooding, così che possa fare il giro della rete
                     cerca_totale(nome_miei_aggr, data_i, tipo_attuale, &mio_tot, 0);
-                    flooding("FLT_REQ", data_i, tipo_attuale, mio_tot, my_port, 0);
+                    flooding("FLD_REQ", data_i, tipo_attuale, mio_tot, my_port, 0);
                     flood = 0;
                 }
             }
@@ -1331,25 +1311,24 @@ int verifica_presenza_dati(int data_ini[], int data_fin[], char asterisco1, char
     return 0;
 }
 
-
 // -------------------------------------------------------------------------------------------------------------------------------------- //
 // ---------------------------------------------------------------- NET UDP ------------------------------------------------------------- //
 // -------------------------------------------------------------------------------------------------------------------------------------- //
 
 /* Crea il socket per la connessione UDP, in modo da assocciarlo all'indirizzo e alla porta passati.
    Ritorna -1 in caso di errore */
-int creazione_socket_UDP() 
+int creazione_socket_UDP()
 {
     // Creazione del socket UDP
     //printf("LOG     creazione del socket UDP...\n");
-	if((udp_socket = socket(AF_INET, SOCK_DGRAM, 0)) == -1) 
+    if ((udp_socket = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
     {
-		perror("ERR     Errore nella creazione del socket UDP, ripovare: ");
-		return -1;
-	}
-	
+        perror("ERR     Errore nella creazione del socket UDP, ripovare: ");
+        return -1;
+    }
+
     // Aggancio
-    if (bind(udp_socket, (struct sockaddr*) &my_addr, sizeof(my_addr)) == -1) 
+    if (bind(udp_socket, (struct sockaddr *)&my_addr, sizeof(my_addr)) == -1)
     {
         perror("ERR     Bind non riuscita\n");
         exit(-1);
@@ -1363,43 +1342,42 @@ int creazione_socket_UDP()
     return 0;
 }
 
-
 /* Invia una richiesta 'request' al DS*/
-void invia_al_DS(char request[])
+int invia_al_DS(char request[])
 {
-    
+
     printf("LOG     Invio di <%s>... ", request);
 
-    if (sendto(udp_socket, request, REQUEST_LEN, 0, (struct sockaddr*) &ds_addr, ds_len_addr) == -1)
+    if (sendto(udp_socket, request, REQUEST_LEN, 0, (struct sockaddr *)&ds_addr, ds_len_addr) == -1)
     {
         perror("\nERR     Errore durante l'invio dell' ACK");
         return -1;
     }
-    
+
     printf("avvenuto con successo\n");
     return 0;
 }
-
 
 /*  Ricevi messaggio dal DS*/
 int ricevi_dal_DS(char this_buf[])
 {
     char buf[REQUEST_LEN];
     int len_addr = sizeof(ds_addr);
-    printf("LOG     Attendo %s... ", this_buf);
+    printf("LOG     Attendo <%s>... ", this_buf);
 
-    if (recvfrom(udp_socket, buf, REQUEST_LEN, 0, (struct sockaddr*) &ds_addr, (socklen_t *__restrict)&len_addr) == -1)
+    if (recvfrom(udp_socket, buf, REQUEST_LEN, 0, (struct sockaddr *)&ds_addr, (socklen_t *__restrict)&len_addr) == -1)
     {
         perror("\nERR     Errore durante la ricezione dell' ACK");
         return -1;
     }
-    
+
     if (strcmp(this_buf, buf) == 0)
         printf("ricevuto con successo\n");
-    
+    else    
+        printf("ERRORE, ho ricevuto <%s>\n", buf);
+
     return 0;
 }
-
 
 /* Ricezione IP e porta dei neighbor*/
 void ricezione_vicini_DS()
@@ -1408,57 +1386,59 @@ void ricezione_vicini_DS()
     in_port_t porta;
 
     //printf("LOG     Ricezione IP e porta del primo neighbor...\n");
-/*
+    /*
     if (recvfrom(udp_socket, (void*)&ip, sizeof(uint32_t), 0, (struct sockaddr*) &ds_addr, (socklen_t *__restrict)&ds_len_addr) == -1)
     {
         perror("ERR     Errore durante la ricezione del primo IP");
     }
 */
-    if (recvfrom(udp_socket, (void*)&porta, sizeof(in_port_t), 0, (struct sockaddr*) &ds_addr, (socklen_t *__restrict)&ds_len_addr) == -1)
+    printf("LOG     Ricezione porta del neighbor sinistro...");
+    if (recvfrom(udp_socket, (void *)&porta, sizeof(in_port_t), 0, (struct sockaddr *)&ds_addr, (socklen_t *__restrict)&ds_len_addr) == -1)
     {
         perror("ERR     Errore durante la ricezione della prima porta");
     }
+    printf(" effettuata con successo: <%d>\n", porta);
 
-    printf("LOG     Ricezione porta del neighbor sinistro effettuata con successo: <%d>\n", porta);
+    invia_al_DS("PRT_ACK");
 
     memset(&vicino.addr_sinistro, 0, sizeof(vicino.addr_sinistro));
     vicino.addr_sinistro.sin_family = AF_INET;
     vicino.addr_sinistro.sin_port = htons(porta);
     vicino.addr_sinistro.sin_addr.s_addr = INADDR_ANY;
-
+    
     // Bisogna vedere se è il primo peer che si registra alla rete
     if (porta == 0)
-        first = 1;
-    else   
-        first = 0;
-    
+        alone = 1;
+    else
+        alone = 0;
 
     //printf("LOG     Ricezione IP e porta del secondo neighbor...\n");
-/*
+    /*
     if (recvfrom(udp_socket, (void*)&ip, sizeof(uint32_t), 0, (struct sockaddr*) &ds_addr, (socklen_t *__restrict)&ds_len_addr) == -1)
     {
         perror("ERR     Errore durante la ricezione del secondo IP");
     }
 */
-    if (recvfrom(udp_socket, (void*)&porta, sizeof(in_port_t), 0, (struct sockaddr*) &ds_addr, (socklen_t *__restrict)&ds_len_addr) == -1)
+    printf("LOG     Ricezione porta del neighbor destro...");
+    if (recvfrom(udp_socket, (void *)&porta, sizeof(in_port_t), 0, (struct sockaddr *)&ds_addr, (socklen_t *__restrict)&ds_len_addr) == -1)
     {
         perror("ERR     Errore durante la ricezione della seconda porta");
     }
+    printf(" effettuata con successo: <%d>\n", porta);
 
-    printf("LOG     Ricezione porta del neighbor destro effettuata con successo: <%d>\n", porta);
+    invia_al_DS("PRT_ACK");
 
     memset(&vicino.addr_destro, 0, sizeof(vicino.addr_destro));
     vicino.addr_destro.sin_family = AF_INET;
     vicino.addr_destro.sin_port = htons(porta);
     vicino.addr_destro.sin_addr.s_addr = INADDR_ANY;
-    
+
     // Bisogna vedere se è il primo peer che si registra alla rete
     if (porta == 0)
-        first = 1;
-    else   
-        first = 0;
+        alone = 1;
+    else
+        alone = 0;
 }
-
 
 // -------------------------------------------------------------------------------------------------------------------------------------- //
 // ---------------------------------------------------------------- MAIN ---------------------------------------------------------------- //
@@ -1480,42 +1460,48 @@ void comandi_disponibili_con_spiegazione()
     printf("    1) help:                        Mostra il significato dei comandi e cio' che fanno\n");
     printf("    2) start <DS_addr> <DS_port>:   Richiede al DS in ascolto all'indirizzo DS_addr:DS_port, la connessione alla network\n");
     printf("    3) add <type> <quantity>:       Aggiunge al register della data corrente l'evento type con quantità quantity\n");
+    printf("                                    'type' puo' essere: 'T' per tampone o 'N' per caso positivo.\n");
+    printf("                                    'quantity' e' un numero intero positivo.\n");
     printf("    4) get <aggr> <type> <period>   Effettua una richiesta di elaborazione per ottenere l'aggregato aggr sui dati relativi\n");
+    printf("                                    'aggr' puo' essere: 'totale' o 'variazione'.\n");
+    printf("                                    'type' puo' essere: 'T' per tampone o 'N' per caso positivo.\n");
+    printf("                                    'period' deve essere nel formato: DD:MM:YY-DD:MM:YY\n");
     printf("                                    a un lasso temporale d'interesse period sulle entry di tipo type\n");
     printf("    5) stop                         Il peer richiede di disconnettersi dal network\n");
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     // ( VARIABILI MAIN
-        fd_set master;
-        fd_set read_fds;
-        int fd_max;
+    fd_set master;
+    fd_set read_fds;
+    int fd_max;
 
-        FILE* fd;
-        int len;
+    FILE *fd;
+    int len;
 
-        time_t rawtime;
-        struct tm* timeinfo;
+    time_t rawtime;
+    struct tm *timeinfo;
 
-        char buf[BUF_LEN];   // Usato per memorizzare i comandi da tastiera
-        char comando[BUF_LEN];  // comando e parametro sono usati per differenziare i comandi dai parametri dei comandi da tastiera
-        int parametro;
-        char tipo;
-        int totale;
-        char periodo[BUF_LEN];
-        char tipo_aggr[BUF_LEN];
-        int data[3];
-        int data_ini[3];
-        int data_fin[3];
-        char asterisco1, asterisco2;
-        int len_addr;
-        int buf_len;
-        int totale_vicino;
-        int porta_richiedente;
-        //int start_fatta = 0;
+    char buf[BUF_LEN];     // Usato per memorizzare i comandi da tastiera
+    char comando[BUF_LEN]; // comando e parametro sono usati per differenziare i comandi dai parametri dei comandi da tastiera
+    int parametro;         // Dei un comando generico
+    char tipo;
+    int totale;
+    char periodo[BUF_LEN];
+    char tipo_aggr[BUF_LEN];
+    int data[3];
+    int data_ini[3];
+    int data_fin[3];
+    char asterisco1, asterisco2; // Controllo sulle date passate con asterisco
+    int len_addr;
+    int buf_len;
+    int totale_vicino;
+    int porta_richiedente;
+    //int start_fatta = 0;
 
-        int sd_wait_for_flt;
+    int sd_wait_for_flt;
+    int diciotto = 0; //Flag per chiudere una sola volta il registro dopo le 18
     // )
 
     my_port = atoi(argv[1]);
@@ -1535,7 +1521,7 @@ int main(int argc, char* argv[])
 
     time(&rawtime);
     timeinfo = localtime(&rawtime);
-    
+
     // Vado a prendere il nome dell'ultimo registro che è stato aperto per fare tutti i congtrolli del caso
     // Se per esempio l'applicazione si riavvia dopo qualche giorno devo controllare se quel registro è stato chiuso o meno
     len = FILE_dim(nome_file_ultimo_reg);
@@ -1553,9 +1539,10 @@ int main(int argc, char* argv[])
     if ((timeinfo->tm_hour >= 17 && timeinfo->tm_min != 0 && timeinfo->tm_sec != 0)) // Se siamo oltre le 18:
     {
         // Creo registro con la data successiva a quella odierna
-        data_successiva(timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 19, data);
+        data_successiva(timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900, data);
         strcpy(nome_reg, "");
-        sprintf(nome_reg, "reg_%d-%d-%d_%d.txt", data[D], data[M], data[Y], my_port);                
+        sprintf(nome_reg, "reg_%d-%d-%d_%d.txt", data[D], data[M], data[Y], my_port);
+        diciotto = 1;
     }
 
     // CASO IN CUI APRO UN REGISTRO UN'ALTRO GIORNO DA QUELLO DEL REGISTRO ATTUALE
@@ -1566,7 +1553,7 @@ int main(int argc, char* argv[])
         // Aggrego i dati di quel registro, questa operazione sancisce anche la chiusura di quel registro
         if (aggrega_registro(buf) == -1)
             printf("WRN     Il registro è stato già chiuso\n");
-        
+
         // Salvo nel file "nome_uoltimo_reg", il nome del registro appena aperto
         sovrascrivi_file(nome_file_ultimo_reg, nome_reg);
     }
@@ -1578,18 +1565,18 @@ int main(int argc, char* argv[])
     my_addr.sin_addr.s_addr = INADDR_ANY;
 
     // Creo il due socket e li aggancio all'indirizzo
-    creazione_socket_TCP(); 
+    creazione_socket_TCP();
     creazione_socket_UDP();
 
     // ( GESTIONE FD: Reset dei descrittori e inizializzazione
-        FD_ZERO(&master); 
-        FD_ZERO(&read_fds);
+    FD_ZERO(&master);
+    FD_ZERO(&read_fds);
 
-        FD_SET(0, &master);
-        FD_SET(udp_socket, &master);
-        FD_SET(ascolto_sd, &master);
+    FD_SET(0, &master);
+    FD_SET(udp_socket, &master);
+    FD_SET(ascolto_sd, &master);
 
-        fd_max = (udp_socket > ascolto_sd) ? udp_socket : ascolto_sd;
+    fd_max = (udp_socket > ascolto_sd) ? udp_socket : ascolto_sd;
     // )
 
     printf("\n");
@@ -1599,14 +1586,14 @@ int main(int argc, char* argv[])
     while (1)
     {
         //printf("\n");
-        // Uso la select() per differenziare e trattare diversamente le varie richieste fatte al DS 
+        // Uso la select() per differenziare e trattare diversamente le varie richieste fatte al DS
         struct timeval intervallo = {0, 500};
         read_fds = master;
         select(fd_max + 1, &read_fds, NULL, NULL, &intervallo);
 
         // Gestione richieste TCP da parte degli altri peer
         if (FD_ISSET(ascolto_sd, &read_fds))
-        {    
+        {
             printf("\n");
             printf("LOG     Nuova richiesta TCP (socket = %d)\n", ascolto_sd);
             strcpy(buf, "");
@@ -1621,7 +1608,7 @@ int main(int argc, char* argv[])
                 perror("ERR     Errore nella recv() di una richiesta");
                 exit(-1);
             }
-            
+
             // Messaggio
             if (recv(trasporto_sd, (void *)buf, buf_len, 0) == -1)
             {
@@ -1631,28 +1618,28 @@ int main(int argc, char* argv[])
 
             //printf("DBG     buf RICEVUTO: <%s> | <%d>\n", buf, buf_len);
 
-            sscanf(buf, "%s", comando); 
+            sscanf(buf, "%s", comando);
             printf("LOG     Ho ricevuto la richiesta <%s> da parte del peer %d\n", comando, ntohs(mittente.sin_port));
-            
+
             // ( Richesta da parte del vicino
-            if (strcmp(comando, "NGB_REQ") == 0) 
+            if (strcmp(comando, "NGB_REQ") == 0)
             {
                 sscanf(buf, "%s %d:%d:%d %c", comando, &data[D], &data[M], &data[Y], &tipo);
                 cerca_totale(nome_aggr, data, tipo, &totale, 1);
 
-                if (send(trasporto_sd, (void*) &totale, sizeof(int), 0) == -1)
+                if (send(trasporto_sd, (void *)&totale, sizeof(int), 0) == -1)
                 {
                     perror("ERR     Dato richiesto non inviato correttamente");
                     continue;
                 }
 
-                printf("LOG     Ho inviato il totale di %d %s al peer %d", totale, (tipo == 'T')? "tamponi fatti":"casi positivi", ntohs(peer_addr.sin_port));
+                printf("LOG     Ho inviato il totale di %d %s al peer %d", totale, (tipo == 'T') ? "tamponi fatti" : "casi positivi", ntohs(peer_addr.sin_port));
                 close(trasporto_sd);
             }
             // )
 
             // ( Richiesta di flooding
-            if (strcmp(comando, "FLT_REQ") == 0)
+            if (strcmp(comando, "FLD_REQ") == 0)
             {
                 sscanf(buf, "%s %d:%d:%d %c %d %d", comando, &data[D], &data[M], &data[Y], &tipo, &totale_vicino, &porta_richiedente);
                 //printf("DBG     FLOOT_REQUEST, buf: <%s>\n", buf);
@@ -1660,7 +1647,7 @@ int main(int argc, char* argv[])
 
                 // Cerco totale nel file degli aggregati della rete
                 cerca_totale(nome_aggr, data, tipo, &totale, 1);
-                
+
                 //printf("DBG     Il mio totale è %d\n", totale);
                 //printf("DBG     porta_richiedente: %d\n", porta_richiedente);
 
@@ -1668,8 +1655,8 @@ int main(int argc, char* argv[])
                 {
                     //printf("LOG     Devo propagare la richiesta di flooding\n");
 
-                    // Vuol dire che il peer non ha alcun dato relativo al totale della rete, 
-                    // quindi deve vedere se ha un dato relativo al suo registro chiuso, 
+                    // Vuol dire che il peer non ha alcun dato relativo al totale della rete,
+                    // quindi deve vedere se ha un dato relativo al suo registro chiuso,
                     // propagarlo aggiungendolo al totale che gli ha inviato il vicino sinistro
                     cerca_totale(nome_miei_aggr, data, tipo, &totale, 0);
                     totale_vicino += totale;
@@ -1679,29 +1666,29 @@ int main(int argc, char* argv[])
                     if (porta_richiedente == ntohs(vicino.addr_destro.sin_port)) // Se sono sul peer precedente a quello che ha iniziato il flooding allora sarà una risposta
                     {
                         // Invio il totale al peer che ha fatto la richiesta di flooding
-                        if (send(sd_wait_for_flt, (void*) &totale_vicino, sizeof(int), 0) == -1)
+                        if (send(sd_wait_for_flt, (void *)&totale_vicino, sizeof(int), 0) == -1)
                         {
                             perror("ERR     Dato richiesto non inviato correttamente");
                             continue;
                         }
 
-                        printf("LOG     Ho inviato il totale di %d %s al peer %d", totale_vicino, (tipo == 'T')? "tamponi fatti":"casi positivi", porta_richiedente);
-                        close(sd_wait_for_flt); 
+                        printf("LOG     Ho inviato il totale di %d %s al peer %d", totale_vicino, (tipo == 'T') ? "tamponi fatti" : "casi positivi", porta_richiedente);
+                        close(sd_wait_for_flt);
                     }
-                    else    
+                    else
                     {
                         //printf("DBG     Prima della chiamata a flooding(): porta_richiedente = %d\n", porta_richiedente);
-                        flooding("FLT_REQ", data, tipo, totale_vicino, porta_richiedente, 1); // Altrimenti è una richiesta
+                        flooding("FLD_REQ", data, tipo, totale_vicino, porta_richiedente, 1); // Altrimenti è una richiesta
                     }
-                } 
+                }
                 else // Propago la risposta
                 {
-                    // Possiede il dato aggregato del totale della rete richiesto, 
+                    // Possiede il dato aggregato del totale della rete richiesto,
                     // quindi invia una richiesta di risposta al flooding verso il vicino destro che la riceverà
                     // e la propagherà fino al raggiungimento del destinatario che ne ha fatto richiesta
 
                     // Stavolta è una risposta al repli
-                    flooding("FLT_RPL", data, tipo, totale, porta_richiedente, 1);
+                    flooding("FLD_RPL", data, tipo, totale, porta_richiedente, 1);
                 }
 
                 close(trasporto_sd);
@@ -1710,7 +1697,7 @@ int main(int argc, char* argv[])
             // )
 
             // ( Risposta al flooding
-            if (strcmp(comando, "FLT_RPL") == 0)
+            if (strcmp(comando, "FLD_RPL") == 0)
             {
                 sscanf(buf, "%s %d:%d:%d %c %d %d", comando, &data[D], &data[M], &data[Y], &tipo, &totale_vicino, &porta_richiedente);
                 //printf("DBG     FLOOT_RELPY, buf: <%s>\n", buf);
@@ -1724,14 +1711,14 @@ int main(int argc, char* argv[])
                         aggiungi_aggr(nome_aggr, data, tipo, totale_vicino);
                     }
 
-                    // Invio sul socket attivato con la richiesta FLT_WAIT
-                    if (send(sd_wait_for_flt, (void*) &totale_vicino, sizeof(int), 0) == -1)
+                    // Invio sul socket attivato con la richiesta FLD_WAIT
+                    if (send(sd_wait_for_flt, (void *)&totale_vicino, sizeof(int), 0) == -1)
                     {
                         perror("ERR     Dato richiesto non inviato correttamente");
                         continue;
                     }
 
-                    printf("LOG     Ho inviato il totale di %d %s al peer %d", totale_vicino, (tipo == 'T')? "tamponi fatti":"casi positivi", porta_richiedente);
+                    printf("LOG     Ho inviato il totale di %d %s al peer %d", totale_vicino, (tipo == 'T') ? "tamponi fatti" : "casi positivi", porta_richiedente);
                     close(sd_wait_for_flt);
                 }
                 else // La risposta è in transito, ma ne approfitto per salvare il dato aggregato se non lo ho
@@ -1742,7 +1729,7 @@ int main(int argc, char* argv[])
                     }
 
                     // Stavolta è una risposta al repli
-                    flooding("FLT_RPL", data, tipo, totale_vicino, porta_richiedente, 1);
+                    flooding("FLD_RPL", data, tipo, totale_vicino, porta_richiedente, 1);
                 }
 
                 close(trasporto_sd);
@@ -1750,9 +1737,9 @@ int main(int argc, char* argv[])
             // )
 
             // ( Richiesta di attesa del flooding che il peer richiedente fa al suo vicino sinistro per avvertirlo che la richiesta dovrà poi spedirla su quel socket
-            if (strcmp(comando, "FLT_WAIT") == 0)
+            if (strcmp(comando, "FLD_WAIT") == 0)
             {
-                printf("LOG     Salvo il socket collegato al peer %d che ha inviato FLT_WAIT\n", ntohs(vicino.addr_destro.sin_port));
+                printf("LOG     Salvo il socket collegato al peer %d che ha inviato FLD_WAIT\n", ntohs(vicino.addr_destro.sin_port));
                 sd_wait_for_flt = trasporto_sd;
             }
             // )
@@ -1767,7 +1754,7 @@ int main(int argc, char* argv[])
             // gestione richieste esterne
             printf("LOG     Nuova richiesta UDP (socket = %d)\n", ascolto_sd);
             strcpy(buf, "");
-            
+
             // Messaggio
             if (recvfrom(udp_socket, (void *)buf, REQUEST_LEN, 0, (struct sockaddr *)&ds_addr, (socklen_t *__restrict)&len_addr) == -1)
             {
@@ -1777,7 +1764,7 @@ int main(int argc, char* argv[])
 
             //printf("DBG     buf RICEVUTO: <%s>\n", buf);
 
-            sscanf(buf, "%s", comando); 
+            sscanf(buf, "%s", comando);
             printf("LOG     Ho ricevuto la richiesta <%s> da parte del DS\n", comando);
 
             // ( Richiesta di UPDATE dei vicini
@@ -1799,10 +1786,10 @@ int main(int argc, char* argv[])
                 aggrega_registro(nome_reg);
                 printf("\n\n---------------- Buona Giornata! ----------------\n\n");
                 exit(-1);
-            }   
+            }
             // )
 
-            printf("\n");        
+            printf("\n");
         }
 
         // Gestione delle richieste da STDIN
@@ -1811,10 +1798,10 @@ int main(int argc, char* argv[])
             printf("\n");
             // gestione richieste da stdin
             printf("LOG     Accetto richiesta da stdin...\n");
-            strcpy(buf,"");
+            strcpy(buf, "");
 
             // Attendo input da tastiera
-            if(fgets(buf, 1024, stdin) == NULL)
+            if (fgets(buf, 1024, stdin) == NULL)
             {
                 printf("ERR     Immetti un comando valido!\n");
                 continue;
@@ -1822,16 +1809,16 @@ int main(int argc, char* argv[])
 
             sscanf(buf, "%s", comando);
 
-            if( (strlen(comando) == 0) || (strcmp(comando," ") == 0) )
+            if ((strlen(comando) == 0) || (strcmp(comando, " ") == 0))
             {
                 printf("ERR     Comando non valido! Prova ad inserire uno dei seguenti:\n");
                 comandi_disponibili();
                 printf("\n");
                 continue;
             }
-            
+
             // ( HELP
-            if (strcmp(comando, "help") == 0) 
+            if (strcmp(comando, "help") == 0)
             {
                 comandi_disponibili_con_spiegazione();
                 printf("\n");
@@ -1861,7 +1848,7 @@ int main(int argc, char* argv[])
                 // inet_pton(AF_INET, ipDS, &ds_addr.sin_addr);
 
                 //printf("DBG     porta e ip del DS: <%d> | <%s>\n", portaDS, ipDS);
-riprova:        // Bisogna far richiesta al DS di entrare nella rete
+            riprova: // Bisogna far richiesta al DS di entrare nella rete
                 if (invia_al_DS("REQ_STR") == -1)
                 {
                     sleep(POLLING_TIME);
@@ -1876,7 +1863,7 @@ riprova:        // Bisogna far richiesta al DS di entrare nella rete
                 }
 
                 // Ricezione dati IP - porta
-                ricezione_vicini_DS();                
+                ricezione_vicini_DS();
 
                 boot = 1;
             }
@@ -1926,7 +1913,7 @@ riprova:        // Bisogna far richiesta al DS di entrare nella rete
                     printf("\n");
                     continue;
                 }
-                
+
                 // Cercare di aggregare da aggr.txt e salvare in cronologia_get.txt
                 if (strcmp(periodo, "*-*") == 0)
                 {
@@ -1978,7 +1965,7 @@ riprova:        // Bisogna far richiesta al DS di entrare nella rete
                     continue;
                 }
 
-verifica:
+            verifica:
                 // Mi serve la data precedente a quella iniviale per calcolare la variazione dell'inizio del periodo
                 if (asterisco1 != '*' && strcmp(tipo_aggr, "variazione") == 0)
                 {
@@ -1993,9 +1980,8 @@ verifica:
                 }
 
                 stampa_richiesta(nome_aggr, data_ini, data_fin, asterisco1, asterisco2, tipo, tipo_aggr);
-                
             }
-            //) 
+            //)
 
             // ( STOP
             else if (strcmp(comando, "stop") == 0) // DA FARE
@@ -2007,7 +1993,7 @@ verifica:
                 printf("\n\n---------------- Buona Giornata! ----------------\n\n");
                 exit(-1);
             }
-            // ) 
+            // )
 
             else
             {
@@ -2015,26 +2001,34 @@ verifica:
                 comandi_disponibili();
             }
 
-            printf("\n");       
+            printf("\n");
 
             // ( CONTROLLO SE SONO PASSATE LE 18 PER CHIUDERE IL REGISTRO
-                time(&rawtime);
-                timeinfo = localtime(&rawtime);
-                
-                // CASO IN CUI APRO UN NUOVO REGISTRO DOPO LE 18 NELLO STESSO GIORNO DELL'ATTUALE REGISTRO
-                // Bisogna controllare l'ora e se il registro è già stato chiuso per eventualmente crearne uno nuovo
-                if ((timeinfo->tm_hour >= 17 && timeinfo->tm_min != 0 && timeinfo->tm_sec != 0)) // Se siamo oltre le 18:
-                {
-                    printf("LOG     Sono passate le 18!\n");
-                    
-                    // Aggrego i dati di quel registro, questa operazione sancisce anche la chiusura di quel registro
+            time(&rawtime);
+            timeinfo = localtime(&rawtime);
+
+            // CASO IN CUI APRO UN NUOVO REGISTRO DOPO LE 18 NELLO STESSO GIORNO DELL'ATTUALE REGISTRO
+            // Bisogna controllare l'ora e se il registro è già stato chiuso per eventualmente crearne uno nuovo
+            if ((timeinfo->tm_hour >= 17 && timeinfo->tm_min != 0 && timeinfo->tm_sec != 0) && !diciotto) // Se siamo oltre le 18:
+            {
+                printf("LOG     Sono passate le 18!\n");
+
+                // Aggrego i dati di quel registro, questa operazione sancisce anche la chiusura di quel registro
+                if (registro_aperto(nome_reg) == 1)
                     aggrega_registro(nome_reg);
 
-                    // Creo registro con la data successiva a quella odierna
-                    data_successiva(timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 19, data);
-                    strcpy(nome_reg, "");
-                    sprintf(nome_reg, "reg_%d-%d-%d_%d.txt", data[D], data[M], data[Y], ntohs(my_addr.sin_port));                
-                }
+                // Creo registro con la data successiva a quella odierna
+                data_successiva(timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900, data);
+                strcpy(nome_reg, "");
+                sprintf(nome_reg, "reg_%d-%d-%d_%d.txt", data[D], data[M], data[Y], ntohs(my_addr.sin_port));
+                diciotto = 1;
+            }
+
+            // Se l'applicazione rimane accesa oltre 00:00 resetto il flag.
+            if (timeinfo->tm_hour < 17)
+            {
+                diciotto = 0;
+            }
             // )
         }
     }

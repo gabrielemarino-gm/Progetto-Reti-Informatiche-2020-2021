@@ -515,7 +515,7 @@ int rimozione_lista_peer(int pos)
     struct des_peer dp;
     long i;
 
-    printf("LOG     Rimuovo il peer dal file <lista_peer.bin>... ");  
+    printf("LOG     Rimuovo il peer che fa fatto richiesta REQ_STP dal file <lista_peer.bin>... ");  
     //printf("DBG     FILE_dim(lista_peer.bin)/sizeof(struct des_peer) = %ld\n", FILE_dim("lista_peer.bin")/sizeof(struct des_peer));  
     //printf("DBG     FILE_dim(lista_peer.bin) = %d\n", FILE_dim("lista_peer.bin")); 
 
@@ -641,6 +641,8 @@ void ricevi(int sd, struct sockaddr_in peer_addr, char this_buf[])
 
     if (strcmp(this_buf, buf) == 0)
         printf("ricevuto con successo\n");
+    else    
+        printf("ERRORE, ho ricevuto <%s>\n", buf);
 }
 
 
@@ -803,7 +805,7 @@ int main(int argc, char* argv[])
 
             if (strcmp(buf, "REQ_STR") == 0) // Richiesta da un peer che ha appena fatto boot
             {    
-                printf("LOG     Ricevuto messaggio <REQ_STR>\n");
+                printf("LOG     Ricevuto messaggio <REQ_STR> dal peer %d\n", ntohs(peer_addr.sin_port));
                 
                 // Invio ACK
                 invia(sd, peer_addr, "ACK_REQ");
@@ -828,8 +830,10 @@ int main(int argc, char* argv[])
                     printf("LOG     E' il primo peer a fare richiesta di start. Invio indirizzi vuoti\n");
                     
                     invio_porta(porta_vuota, sd, peer_addr);
+                    ricevi(sd, peer_addr, "PRT_ACK");
 
                     invio_porta(porta_vuota, sd, peer_addr);
+                    ricevi(sd, peer_addr, "PRT_ACK");
                     
                     // Salvo il valore dell'indirizzo del primo_peer
                     first_peer = peer_addr; 
@@ -852,9 +856,11 @@ int main(int argc, char* argv[])
                     ricevi(sd, first_peer, "UPD_ACK");
 
                     //invio_IP(IP_prec, sd, first_peer);
-                    invio_porta(porta_peer, sd, first_peer);         
+                    invio_porta(porta_peer, sd, first_peer);    
+                    ricevi(sd, peer_addr, "PRT_ACK");     
                     //invio_IP(IP_succ, sd, first_peer);
                     invio_porta(porta_peer, sd, first_peer);   
+                    ricevi(sd, peer_addr, "PRT_ACK");
 
                     // Inserire nel FILE
                     inserimento_lista_peer(indx, porta_peer, IP_peer);
@@ -872,8 +878,10 @@ int main(int argc, char* argv[])
                     porta_destra = get_port((indx+1)%file_len); 
                     //printf("DBG     Porta = %d\n", porta_destra);
 
-                    invio_porta(porta_sinistra, sd, peer_addr);         
+                    invio_porta(porta_sinistra, sd, peer_addr);      
+                    ricevi(sd, peer_addr, "PRT_ACK");   
                     invio_porta(porta_destra, sd, peer_addr);  
+                    ricevi(sd, peer_addr, "PRT_ACK");
 
                     primo_peer = 0;
                     secondo_peer = 0;  
@@ -896,8 +904,10 @@ int main(int argc, char* argv[])
                 porta_destra = get_port((indx+1)%file_len); 
                 //printf("DBG     Porta = %d\n", porta_destra);
 
-                invio_porta(porta_sinistra, sd, peer_addr);         
-                invio_porta(porta_destra, sd, peer_addr);         
+                invio_porta(porta_sinistra, sd, peer_addr);   
+                ricevi(sd, peer_addr, "PRT_ACK");      
+                invio_porta(porta_destra, sd, peer_addr);   
+                ricevi(sd, peer_addr, "PRT_ACK");      
 
                 memset(&peer_sinistro, 0, sizeof(peer_sinistro));
                 peer_sinistro.sin_family = AF_INET;
@@ -927,8 +937,10 @@ int main(int argc, char* argv[])
                     porta_destra = get_port(((indx-1)+1)%file_len); 
                     //printf("DBG     Porta destra = %d\n", porta_destra);
 
-                    invio_porta(porta_sinistra, sd, peer_sinistro);         
-                    invio_porta(porta_destra, sd, peer_sinistro);         
+                    invio_porta(porta_sinistra, sd, peer_sinistro);     
+                    ricevi(sd, peer_addr, "PRT_ACK");    
+                    invio_porta(porta_destra, sd, peer_sinistro);  
+                    ricevi(sd, peer_addr, "PRT_ACK");       
                     
                 // )
 
@@ -951,22 +963,23 @@ int main(int argc, char* argv[])
                     //printf("DBG     Porta destra = %d\n", porta_destra);
 
                     invio_porta(porta_sinistra, sd, peer_destro);         
+                    ricevi(sd, peer_addr, "PRT_ACK");
                     invio_porta(porta_destra, sd, peer_destro);         
+                    ricevi(sd, peer_addr, "PRT_ACK");
                     
                 // )
             }
-            else if (strcmp(buf, "STP_REQ") == 0) // Ho ricevuto STP_REQ 
+            
+            if (strcmp(buf, "STP_REQ") == 0) // Ho ricevuto STP_REQ 
             {
                 // Devo cercare i vicini e inviare una richiesta di modifica dei loro neighbor
-                printf("LOG     Ricevuto messaggio <STP_REQ>\n");
+                printf("LOG     Ricevuto messaggio <STP_REQ> dal peer %d\n", ntohs(peer_addr.sin_port));
 
                 invia(sd, peer_addr, "STP_ACK");
                 // Prendo la porta dall'indirizzo
                 porta_peer = ntohs(peer_addr.sin_port);
                 
-                file_len = FILE_dim(lista_peer)/sizeof(struct des_peer);
-                printf("LOG     Ricerco peer nel file <lista_peer.bin>\n");
-               
+                file_len = FILE_dim(lista_peer)/sizeof(struct des_peer);               
                 indx = ricerca_posto_lista_peer(porta_peer, 1);
                 //printf("DBG     indx = %d\n", indx);
                 
@@ -975,9 +988,10 @@ int main(int argc, char* argv[])
                 porta_sinistra = get_port((indx-1)%file_len); 
                 porta_destra = get_port((indx+1)%file_len); 
 
-                printf("DBG     Invio aggiornamento al peer sinistro <%d> | indx = <%d>\n", porta_sinistra, (indx-1)%file_len);
-                printf("DBG     Invio aggiornamento al peer destro <%d> | indx = <%d>\n", porta_destra, (indx+1)%file_len);
+                //printf("DBG     Invio aggiornamento al peer sinistro <%d> | indx = <%d>\n", porta_sinistra, (indx-1)%file_len);
+                //printf("DBG     Invio aggiornamento al peer destro <%d> | indx = <%d>\n", porta_destra, (indx+1)%file_len);
 
+                // Creo indirizzo dei peer a cui inviare l'aggiornamento
                 memset(&peer_sinistro, 0, sizeof(peer_sinistro));
                 peer_sinistro.sin_family = AF_INET;
                 peer_sinistro.sin_port = htons(porta_sinistra);
@@ -988,6 +1002,25 @@ int main(int argc, char* argv[])
                 peer_destro.sin_port = htons(porta_destra);
                 peer_destro.sin_addr.s_addr = INADDR_ANY;
 
+                if (file_len == 2) // Ci sono solo due peer
+                {
+                    // Invio ai peer che hanno perso il vicino, l'aggiornamento del peer
+                    invia(sd, peer_sinistro, "UPD_REQ");
+
+                    // Attendo l'ACK da parte del peer per poter inviare i nuovi vicini
+                    ricevi(sd, peer_sinistro, "UPD_ACK");
+
+                    // inviare i vicini al richiedente
+                    printf("LOG     E' rimasto un solo peer\n");
+                    
+                    // Porta vuota, è solo nella rete
+                    invio_porta(porta_vuota, sd, peer_sinistro);       
+                    ricevi(sd, peer_addr, "PRT_ACK");  
+                    invio_porta(porta_vuota, sd, peer_sinistro); 
+                    ricevi(sd, peer_addr, "PRT_ACK");                      
+                }
+                else if(file_len > 2) // Ci sono più di 2 peer
+                {
                 // ( Devo ora inviare una richiesta di UPDATE al peer SINISTRO
                     // Invio ai peer che hanno perso il vicino, l'aggiornamento del peer
                     invia(sd, peer_sinistro, "UPD_REQ");
@@ -996,18 +1029,21 @@ int main(int argc, char* argv[])
                     ricevi(sd, peer_sinistro, "UPD_ACK");
 
                     // inviare i vicini al richiedente
-                    printf("LOG     Cerco i peer sinistro (indx=%d) e destro (indx=%d)\n", ((indx-1)-1)%file_len, ((indx-1)+1)%file_len);
+                    printf("LOG     Cerco i peer sinistro (indx=%d) e destro (indx=%d)\n", ((indx-1)-1)%file_len, ((indx-1)+2)%file_len);
 
                     //printf("DBG     Vicino all'indx = %d\n", ((indx-1)-1)%file_len);
                     porta_sinistra = get_port(((indx-1)-1)%file_len); 
-                    //printf("DBG     Porta sinistra = %d\n", porta_sinistra);
+                    printf("DBG     Porta sinistra = %d\n", porta_sinistra);
 
                     //printf("DBG     Vicino all'indx = %d\n", ((indx-1)+1)%file_len);
                     porta_destra = get_port(((indx-1)+2)%file_len); 
-                    //printf("DBG     Porta destra = %d\n", porta_destra);
+                    printf("DBG     Porta destra = %d\n", porta_destra);
 
-                    invio_porta(porta_sinistra, sd, peer_sinistro);         
-                    invio_porta(porta_destra, sd, peer_sinistro);         
+            
+                    invio_porta(porta_sinistra, sd, peer_sinistro);      
+                    ricevi(sd, peer_addr, "PRT_ACK");   
+                    invio_porta(porta_destra, sd, peer_sinistro);    
+                    ricevi(sd, peer_addr, "PRT_ACK");                              
                 // )
 
                 // ( Devo ora inviare una richiesta di UPDATE al peer DESTRO    
@@ -1022,18 +1058,21 @@ int main(int argc, char* argv[])
 
                     //printf("DBG     Vicino all'indx = %d\n", ((indx-1)-1)%file_len);
                     porta_sinistra = get_port(((indx+1)-2)%file_len); 
-                    //printf("DBG     Porta sinistra = %d\n", porta_sinistra);
+                    printf("DBG     Porta sinistra = %d\n", porta_sinistra);
 
                     //printf("DBG     Vicino all'indx = %d\n", ((indx-1)+1)%file_len);
                     porta_destra = get_port(((indx+1)+1)%file_len); 
-                    //printf("DBG     Porta destra = %d\n", porta_destra);
+                    printf("DBG     Porta destra = %d\n", porta_destra);
 
-                    invio_porta(porta_sinistra, sd, peer_destro);         
-                    invio_porta(porta_destra, sd, peer_destro);       
+                    invio_porta(porta_sinistra, sd, peer_destro);  
+                    ricevi(sd, peer_addr, "PRT_ACK");       
+                    invio_porta(porta_destra, sd, peer_destro);   
+                    ricevi(sd, peer_addr, "PRT_ACK");       
+
                 // )
+                }
 
                 // Elimino il peer che fa fatto STP_REQ dal file 'lista_peer.bin'
-                printf("LOG     Rimozione peer che ha fatto richiesta STP_REQ\n");
                 indx -= file_len;
                 rimozione_lista_peer(indx); 
                 
@@ -1050,6 +1089,14 @@ int main(int argc, char* argv[])
                 {
                     primo_peer = 0;
                     secondo_peer = 1;
+
+                    // Setto l'indirizzo del primo peer
+                    porta_peer = get_port(1);
+
+                    memset(&first_peer, 0, sizeof(first_peer));
+                    first_peer.sin_family = AF_INET;
+                    first_peer.sin_port = htons(porta_peer);
+                    first_peer.sin_addr.s_addr = INADDR_ANY;
                 }
             }
         }
